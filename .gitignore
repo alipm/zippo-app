@@ -1,0 +1,14 @@
+# Node/NestJS compiled files, dependencies, and environment keys
+node_modules/
+dist/
+.env
+*.log
+
+# Android Studio / Gradle project compile footprints
+.gradle/
+build/
+captures/
+.idea/
+local.properties
+*.apk
+*.aar
