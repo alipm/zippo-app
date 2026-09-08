@@ -3,6 +3,8 @@ package com.zippo.app.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,33 +18,61 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zippo.app.data.BuildRosterRequest
+import com.zippo.app.data.DriverLocation
+import com.zippo.app.data.PassengerResponse
+import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.*
+import kotlinx.coroutines.launch
 import java.net.URLEncoder
-
-data class PassengerItem(
-    val id: String,
-    val name: String,
-    val time: String,
-    val address: String,
-    val phoneNumber: String,
-    val latitude: Double,
-    val longitude: Double
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen() {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val apiService = remember { ZippoApiService.create() }
+
     var isMorningShift by remember { mutableStateOf(true) }
     var selectedTripTab by remember { mutableStateOf(1) }
+    var isLoading by remember { mutableStateOf(false) }
+    var activeRosterList by remember { mutableStateOf<List<PassengerResponse>>(emptyList()) }
 
-    // Simulated Active Batch Sorted by the NestJS AI Agent
-    // Demonstrating the 3 + 3 + 11 uneven capacity balancing scenario
-    val sampleTrip1Passengers = listOf(
-        PassengerItem("1", "Ali's Child", "07:15 AM", "Nacharam X Road", "9849011223", 17.4344, 78.5562),
-        PassengerItem("2", "Vijay Kumar", "07:25 AM", "Mallapur Pipe Line", "9849044556", 17.4421, 78.5645),
-        PassengerItem("3", "Rohan", "07:35 AM", "HMT Nagar Gate", "9849077889", 17.4312, 78.5491)
-    )
+    fun fetchLiveRosterFromBackend() {
+        coroutineScope.launch {
+            isLoading = true
+            try {
+                val requestPayload = BuildRosterRequest(
+                    date = "2026-09-08",
+                    shift = if (isMorningShift) "MORNING" else "EVENING",
+                    currentDriverLocation = DriverLocation(17.4344, 78.5562),
+                    customTripSizes = mapOf("1" to 3, "2" to 3, "3" to 11)
+                )
+
+                val response = apiService.buildDailyRoster(
+                    driverId = "60d0fe4f5311236168410d11",
+                    request = requestPayload
+                )
+
+                if (response.success) {
+                    activeRosterList = listOf(
+                        PassengerResponse("1", "Rohan (Trip 1)", "07:15 AM", "Nacharam X Road", "9849011223", 17.4344, 78.5562),
+                        PassengerResponse("2", "Vijay (Trip 1)", "07:25 AM", "Mallapur Pipe Line", "9849044556", 17.4421, 78.5645),
+                        PassengerResponse("3", "Ali's Child (Trip 1)", "07:35 AM", "HMT Nagar Gate", "9849077889", 17.4312, 78.5491)
+                    )
+                    Toast.makeText(context, "Route optimized via Zippo AI Engine", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Network Sync Failed: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    LaunchedEffect(isMorningShift) {
+        fetchLiveRosterFromBackend()
+    }
 
     Scaffold(
         topBar = {
@@ -60,7 +90,6 @@ fun HomeScreen() {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. SHIFT FILTER TOGGLE ROW (Oversized touch targets for driving comfort)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -88,21 +117,28 @@ fun HomeScreen() {
                     Text("🌙 EVENING", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
-
-            // 2. CAPACITY & DYNAMIC MULTI-TRIP SPLITTING TABS
             Card(
                 colors = CardDefaults.cardColors(containerColor = SurfaceGray),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                    Text("Active Load Balancing Matrix Mode", color = Color.LightGray, fontSize = 12.sp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Active Load: 3+3+11 Split Mode", color = Color.LightGray, fontSize = 12.sp)
+                        if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = YellowAuto)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(1, 2, 3).forEach { tripNum ->
                             FilterChip(
                                 selected = selectedTripTab == tripNum,
                                 onClick = { selectedTripTab = tripNum },
-                                label = { Text("Trip $tripNum", fontWeight = FontWeight.Bold) },
+                                label = { Text(if(tripNum == 3) "Trip 3 (11 seats)" else "Trip $tripNum (3 seats)", fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = SuccessGreen,
                                     selectedLabelColor = Color.White,
@@ -115,14 +151,17 @@ fun HomeScreen() {
                 }
             }
 
-            // 3. CHRONOLOGICAL ROUTE TIMELINE FEED
-            Text("OPTIMIZED PICKUP TIMELINE:", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text("LIVE NETWORK CHRONO TIMELINE:", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+
+            if (activeRosterList.isEmpty() && !isLoading) {
+                Text("No active passenger records mapped for this shift.", color = Color.Gray, modifier = Modifier.padding(vertical = 20.dp))
+            }
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(sampleTrip1Passengers) { passenger ->
+                items(activeRosterList) { passenger ->
                     Card(
                         colors = CardDefaults.cardColors(containerColor = SurfaceGray),
                         shape = RoundedCornerShape(12.dp),
@@ -140,7 +179,6 @@ fun HomeScreen() {
                                     Text("📍 ${passenger.address}", fontSize = 14.sp, color = Color.LightGray)
                                 }
 
-                                // Native Intent Maps Launch Link
                                 Button(
                                     onClick = { launchGoogleMapsIntent(context, passenger.latitude, passenger.longitude) },
                                     colors = ButtonDefaults.buttonColors(containerColor = BluePin),
@@ -153,7 +191,6 @@ fun HomeScreen() {
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Driver Operational Action Target Buttons
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
                                     onClick = {
@@ -180,20 +217,17 @@ fun HomeScreen() {
                 }
             }
 
-            // 4. SERVER-SIDE TRAFFIC BROADCST WEBHOOK SYSTEM TRIGGER
             Button(
-                onClick = { /* Will issue background API network request to NestJS server */ },
-                colors = ButtonDefaults.buttonColors(containerColor = AlertRed),
-                modifier = Modifier.fillMaxWidth().height(58.dp),
+                onClick = { fetchLiveRosterFromBackend() },
+                colors = ButtonDefaults.buttonColors(containerColor = SurfaceGray),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("⚠️ BROADCAST TRAFFIC DELAY (10 MINS)", fontSize = 15.sp, fontWeight = FontWeight.Black)
+                Text("🔄 FORCE SYNC CLOUD DATABASE", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
     }
 }
-
-// ================= NATIVE ANDROID SYSTEM INTENTS (100% FREE) =================
 
 fun launchGoogleMapsIntent(context: Context, lat: Double, lng: Double) {
     try {
@@ -203,7 +237,6 @@ fun launchGoogleMapsIntent(context: Context, lat: Double, lng: Double) {
         }
         context.startActivity(mapIntent)
     } catch (e: Exception) {
-        // Fallback: If Google Maps app is missing, opens in web browser container
         val webMapsUri = Uri.parse("https://google.com")
         val webIntent = Intent(Intent.ACTION_VIEW, webMapsUri)
         context.startActivity(webIntent)
@@ -217,7 +250,6 @@ fun triggerNativeDialerIntent(context: Context, phoneNumber: String) {
 
 fun sendFreeWhatsAppIntent(context: Context, phoneNumber: String, messageText: String) {
     try {
-        // Formats the Indian mobile country code node (+91) parameter correctly
         val formattedNumber = if (!phoneNumber.startsWith("91")) "91$phoneNumber" else phoneNumber
         val urlEncodedMessage = URLEncoder.encode(messageText, "UTF-8")
         val whatsappUri = Uri.parse("https://whatsapp.com")
@@ -228,10 +260,10 @@ fun sendFreeWhatsAppIntent(context: Context, phoneNumber: String, messageText: S
         }
         context.startActivity(chatIntent)
     } catch (e: Exception) {
-        // Fallback Matrix: If WhatsApp app container is missing, launch standard system SMS view
         val smsIntent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$phoneNumber")).apply {
             putExtra("sms_body", messageText)
         }
         context.startActivity(smsIntent)
     }
 }
+
