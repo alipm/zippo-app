@@ -2,7 +2,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { TripsModule } from './trips/trips.module.js'; // Import the new module
+import { TripsModule } from './trips/trips.module.js';
+import { AiModule } from './ai/ai.module.js'; 
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { TripsModule } from './trips/trips.module.js'; // Import the new module
       }),
       inject: [ConfigService],
     }),
-    TripsModule, // Register the module here
+    TripsModule,
+    AiModule,
   ],
 })
 
