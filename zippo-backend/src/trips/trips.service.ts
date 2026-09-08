@@ -114,6 +114,80 @@ export class TripsService {
     }
     return sortedIds;
   }
+
+    // Inject this execution module directly at the base of your TripsService class definitions
+  async seedMockPassengersCollection(driverId: string) {
+    // Purge old test remnants to ensure clean data sets during development cycles
+    await this.passengerModel.deleteMany({ driverId });
+
+    // Seed data model mirroring local transport nodes in Hyderabad
+    const mockRosterBatch = [
+      {
+        driverId,
+        name: "Rohan Kumar",
+        passengerType: "SCHOOL",
+        contractType: "BOTH",
+        monthlyFare: 1500,
+        morningPickupTime: "07:15 AM",
+        eveningPickupTime: "04:30 PM",
+        homeCoordinates: { lat: 17.4344, lng: 78.5562 }, // Nacharam location pin
+        destinationCoordinates: { lat: 17.4225, lng: 78.5412 }, // School hub point
+        isActive: true,
+      },
+      {
+        driverId,
+        name: "Ali Bhai Jr.",
+        passengerType: "SCHOOL",
+        contractType: "BOTH",
+        monthlyFare: 1500,
+        morningPickupTime: "07:25 AM",
+        eveningPickupTime: "04:40 PM",
+        homeCoordinates: { lat: 17.4421, lng: 78.5645 }, // Mallapur axis pin
+        destinationCoordinates: { lat: 17.4225, lng: 78.5412 },
+        isActive: true,
+      },
+      {
+        driverId,
+        name: "Vijay (Tech Park)",
+        passengerType: "OFFICE",
+        contractType: "MORNING_ONLY",
+        monthlyFare: 2000,
+        morningPickupTime: "07:35 AM",
+        eveningPickupTime: "06:00 PM",
+        homeCoordinates: { lat: 17.4312, lng: 78.5491 }, // HMT Nagar axis pin
+        destinationCoordinates: { lat: 17.4482, lng: 78.3741 }, // Hitech City tech park hub
+        isActive: true,
+      },
+      {
+        driverId,
+        name: "Suresh S.",
+        passengerType: "OFFICE",
+        contractType: "BOTH",
+        monthlyFare: 2500,
+        morningPickupTime: "07:45 AM",
+        eveningPickupTime: "05:30 PM",
+        homeCoordinates: { lat: 17.4510, lng: 78.5720 },
+        destinationCoordinates: { lat: 17.4482, lng: 78.3741 },
+        isActive: true,
+      },
+      {
+        driverId,
+        name: "Naresh Goud",
+        passengerType: "SCHOOL",
+        contractType: "EVENING_ONLY",
+        monthlyFare: 1200,
+        morningPickupTime: "08:00 AM",
+        eveningPickupTime: "04:15 PM",
+        homeCoordinates: { lat: 17.4290, lng: 78.5380 },
+        destinationCoordinates: { lat: 17.4225, lng: 78.5412 },
+        isActive: true,
+      }
+    ];
+
+    const insertedDocuments = await this.passengerModel.insertMany(mockRosterBatch);
+    return { count: insertedDocuments.length };
+  }
+
 }
 
 // // src/trips/trips.service.ts
