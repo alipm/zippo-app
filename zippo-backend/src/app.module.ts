@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TripsModule } from './trips/trips.module.js';
 import { AiModule } from './ai/ai.module.js'; 
+import { PaymentsModule } from './payments/payments.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AiModule } from './ai/ai.module.js';
     }),
     TripsModule,
     AiModule,
+    PaymentsModule,
   ],
 })
 
