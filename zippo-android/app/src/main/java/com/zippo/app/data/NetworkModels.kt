@@ -38,3 +38,26 @@ data class TripSegmentResponse(
     val passengerIds: List<String>,
     val status: String
 )
+
+// Matches your MongoDB family ledger billing collections format
+data class LedgerInvoiceResponse(
+    val id: String,
+    val householdName: String,
+    val description: String,
+    val fareAmount: Int,
+    val isSettled: Boolean,
+    val parentPhoneNumber: String
+)
+
+data class LedgerSummaryResponse(
+    val success: Boolean,
+    val message: String,
+    val totalCollected: Int,
+    val pendingDues: Int,
+    val invoices: List<LedgerInvoiceResponse>
+)
+
+data class UpdatePaymentStatusRequest(
+    val invoiceId: String,
+    val paymentType: String // "CASH" or "UPI"
+)

@@ -3,7 +3,9 @@ package com.zippo.app.data
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 
 interface ZippoApiService {
@@ -14,6 +16,19 @@ interface ZippoApiService {
         @Header("x-driver-id") driverId: String,
         @Body request: BuildRosterRequest
     ): RosterApiResponse
+
+    // 🟢 NEW ENDPOINT 1: Fetch consolidated monthly invoicing arrays
+    @GET("payments/ledger-summary")
+    suspend fun fetchFinancialLedger(
+        @Header("x-driver-id") driverId: String
+    ): LedgerSummaryResponse
+
+    // 🟢 NEW ENDPOINT 2: Submit out-of-band payment status settlements
+    @PATCH("payments/update-status")
+    suspend fun clearInvoiceBalance(
+        @Header("x-driver-id") driverId: String,
+        @Body request: UpdatePaymentStatusRequest
+    ): Map<String, Any>
 
     companion object {
         // Points to your local machine IP or cloud server gateway link
