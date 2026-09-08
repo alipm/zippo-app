@@ -1,9 +1,5 @@
 package com.zippo.app.ui.screens
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,7 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zippo.app.ui.theme.*
-import java.net.URLEncoder
 
 data class LedgerInvoiceItem(
     val id: String,
