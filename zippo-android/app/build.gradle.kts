@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.zippo.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.zippo.app"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -40,15 +40,37 @@ android {
 }
 
 dependencies {
+    // 1. FORCE RIGID CONSTRAINTS TO BLOCK WRONG ALPHA VERSIONS INTERNALLY
+    constraints {
+        implementation("androidx.core:core:1.13.1") {
+            because("Version 1.17.0 requires unreleased Android API 36 platform structures")
+        }
+        implementation("androidx.core:core-ktx:1.13.1") {
+            because("Version 1.17.0 requires unreleased Android API 36 platform structures")
+        }
+        implementation("androidx.activity:activity:1.9.3") {
+            because("Version 1.12.4 breaks compileSdk 35 toolchains")
+        }
+        implementation("androidx.activity:activity-compose:1.9.3") {
+            because("Version 1.12.4 breaks compileSdk 35 toolchains")
+        }
+        implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4") {
+            because("Prevents automatic pulling of higher unstable internal API targets")
+        }
+    }
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
+    // 2. EXPLICIT STABLE COMPATIBLE VERSIONS FOR API 35 (Replaces the broken libs.androidx.X lines)
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+
+    // 3. CORE JETPACK COMPOSE UI CORE FRAMEWORKS
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
