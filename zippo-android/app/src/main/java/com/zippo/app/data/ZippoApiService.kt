@@ -8,6 +8,20 @@ import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 
+// 🟢 PASSENGER REGISTRATION REQUEST PAYLOAD SKELETON DEFINITION
+data class CreatePassengerRequest(
+    val name: String,
+    val passengerType: String, // "SCHOOL" or "OFFICE"
+    val contractType: String,  // "BOTH", "MORNING_ONLY", "EVENING_ONLY"
+    val monthlyFare: Int,
+    val morningPickupTime: String,
+    val eveningPickupTime: String,
+    val homeCoordinates: CoordinateNode,
+    val destinationCoordinates: CoordinateNode
+)
+
+data class CoordinateNode(val lat: Double, val lng: Double)
+
 interface ZippoApiService {
 
     // POST endpoint: /trips/build-roster
@@ -28,6 +42,13 @@ interface ZippoApiService {
     suspend fun clearInvoiceBalance(
         @Header("x-driver-id") driverId: String,
         @Body request: UpdatePaymentStatusRequest
+    ): Map<String, Any>
+
+    // 🟢 NEW ENDPOINT PATHWAY: Create and persist new passenger profiles into Atlas
+    @POST("passengers/create")
+    suspend fun createPassengerProfile(
+        @Header("x-driver-id") driverId: String,
+        @Body request: CreatePassengerRequest
     ): Map<String, Any>
 
     companion object {
