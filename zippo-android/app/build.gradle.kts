@@ -82,4 +82,7 @@ dependencies {
     // 4. RETROFIT & HTTP PIPELINE NETWORK TRANSPORTS
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // GOOGLE HIGH-ACCURACY PLAY SERVICES LOCATION PROVIDER
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }
