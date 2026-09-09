@@ -144,6 +144,19 @@ fun OnboardingScreen() {
 
         HorizontalDivider(color = Color.DarkGray, thickness = 1.dp)
 
+        // 🟢 UPDATED HARDWARE-LINKED GPS COORDINATE CAPTURE ACTIONS MATRIX
+        Text(
+            text = "Hardware GPS Pin Registry:",
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "* Drive and stand physically at the target location gate before locking coordinates.",
+            color = Color.LightGray,
+            fontSize = 11.sp
+        )
+
         Button(
             onClick = { Toast.makeText(context, "Home GPS Locked Natively", Toast.LENGTH_SHORT).show() },
             colors = ButtonDefaults.buttonColors(containerColor = BluePin),
@@ -152,6 +165,20 @@ fun OnboardingScreen() {
         ) {
             Text("🏠 LOCK HARDWARE GPS HOME PIN", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
         }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 🟢 NEW ACCENT BUTTON: Destination Hub Location Node (School/Office)
+        Button(
+            onClick = { Toast.makeText(context, "🏫 Destination Hub GPS Pin Locked", Toast.LENGTH_SHORT).show() },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF6C00)), // Custom High-Visibility Orange
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Text("🏫 LOCK DESTINATION HUB PIN", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color.White)
+        }
+
+        HorizontalDivider(color = Color.DarkGray, thickness = 1.dp)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
