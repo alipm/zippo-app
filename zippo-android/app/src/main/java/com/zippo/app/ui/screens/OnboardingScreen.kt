@@ -20,6 +20,8 @@ import com.zippo.app.data.CreatePassengerRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.*
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +83,8 @@ fun OnboardingScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(DarkChassis)
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()), // 🟢 THIS IS THE CRITICAL FIX MODIFIER EXTENSION
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(
