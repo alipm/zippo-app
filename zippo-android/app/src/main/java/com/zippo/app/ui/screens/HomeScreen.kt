@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zippo.app.data.BuildRosterRequest
 import com.zippo.app.data.DriverLocation
+import com.zippo.app.data.LocationCoordinate
 import com.zippo.app.data.PassengerResponse
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.services.LocationService
@@ -64,21 +64,44 @@ fun HomeScreen() {
             isLoading = true
             try {
                 val requestPayload = BuildRosterRequest(
-                    date = "2026-09-08",
+                    date = "2026-09-09",
                     shift = if (isMorningShift) "MORNING" else "EVENING",
                     currentDriverLocation = DriverLocation(17.4344, 78.5562),
                     customTripSizes = mapOf("1" to 3, "2" to 3, "3" to 11)
                 )
-                val response = apiService.buildDailyRoster(driverId = "60d0fe4f5311236168410d11", request = requestPayload)
-                if (response.success) {
-                    activeRosterList = listOf(
-                        PassengerResponse("1", "Rohan (Trip 1)", "07:15 AM", "Nacharam X Road", "9849011223", 17.4344, 78.5562),
-                        PassengerResponse("2", "Vijay (Trip 1)", "07:25 AM", "Mallapur Pipe Line", "9849044556", 17.4421, 78.5645),
-                        PassengerResponse("3", "Ali's Child (Trip 1)", "07:35 AM", "HMT Nagar Gate", "9849077889", 17.4312, 78.5491)
-                    )
+
+                val response = apiService.buildDailyRoster(
+                    driverId = "60d0fe4f5311236168410d11",
+                    request = requestPayload
+                )
+
+                if (response.success && response.data.isNotEmpty()) {
+                    activeRosterList = response.data.flatMap { segment ->
+                        if (segment.tripNumber == selectedTripTab) {
+                            segment.passengerIds.map { profile ->
+                                // 🟢 FIXED: Safely applies default boundaries to prevent null runtime checks
+                                PassengerResponse(
+                                    id = profile.id ?: "",
+                                    name = profile.name ?: "Unknown Candidate",
+                                    passengerType = profile.passengerType ?: "SCHOOL",
+                                    contractType = profile.contractType ?: "BOTH",
+                                    monthlyFare = profile.monthlyFare ?: 1500,
+                                    morningPickupTime = profile.morningPickupTime ?: "07:30 AM",
+                                    eveningPickupTime = profile.eveningPickupTime ?: "04:30 PM",
+                                    homeCoordinates = profile.homeCoordinates ?: LocationCoordinate(17.4344, 78.5562),
+                                    destinationCoordinates = profile.destinationCoordinates ?: LocationCoordinate(17.4225, 78.5412),
+                                    phoneNumber = profile.phoneNumber ?: "9849011223",
+                                    address = if ((profile.passengerType ?: "SCHOOL") == "SCHOOL") "School Pickup Node" else "Office Transit Node"
+                                )
+                            }
+                        } else emptyList()
+                    }
+                    Toast.makeText(context, "Cloud sync complete!", Toast.LENGTH_SHORT).show()
+                } else {
+                    activeRosterList = emptyList()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Sync Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Sync Error: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
                 isLoading = false
             }
@@ -177,17 +200,27 @@ fun HomeScreen() {
                 items(activeRosterList) { passenger ->
                     Card(colors = CardDefaults.cardColors(containerColor = SurfaceGray)) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column {
-                                    Text(passenger.time, fontSize = 20.sp, fontWeight = FontWeight.Black, color = YellowAuto)
-                                    Text(passenger.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextMain)
+                                    val pickupTime = if (isMorningShift) passenger.morningPickupTime else passenger.eveningPickupTime
+                                    Text(text = pickupTime ?: "07:30 AM",
+                                        fontSize = 20.sp, fontWeight = FontWeight.Black, color = YellowAuto)
+                                    Text(text = passenger.name ?: "Unknown Candidate", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextMain)
                                 }
                                 Button(
-                                    onClick = { launchGoogleMapsIntent(context, passenger.latitude, passenger.longitude) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BluePin)
+                                    onClick = {
+                                        val activeCoords = if (isMorningShift) passenger.homeCoordinates else passenger.destinationCoordinates
+                                        // 🟢 FIXED: Pulls double parameters with zero-risk fallback definitions
+                                        val targetLat = activeCoords?.lat ?: 17.4344
+                                        val targetLng = activeCoords?.lng ?: 78.5562
+                                        launchGoogleMapsIntent(context, targetLat, targetLng)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = BluePin),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Text("🗺️ NAV")
                                 }
+
                             }
                             Spacer(modifier = Modifier.height(12.dp))
 
@@ -199,7 +232,7 @@ fun HomeScreen() {
                                 Button(
                                     onClick = {
                                         val msg = "Zippo Alert: Arriving in 2 minutes! Please step out to the pickup point."
-                                        sendFreeWhatsAppIntent(context, passenger.phoneNumber, msg)
+                                        sendFreeWhatsAppIntent(context, passenger.phoneNumber ?: "9849011223", msg)
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                                     modifier = Modifier.weight(1.2f).height(48.dp),
@@ -208,7 +241,7 @@ fun HomeScreen() {
                                     Text("📱 1KM ALERT", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
                                 Button(
-                                    onClick = { triggerNativeDialerIntent(context, passenger.phoneNumber) },
+                                    onClick = { triggerNativeDialerIntent(context, passenger.phoneNumber ?: "9849011223") },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
                                     modifier = Modifier.weight(0.8f).height(48.dp),
                                     shape = RoundedCornerShape(8.dp)
@@ -236,7 +269,7 @@ fun HomeScreen() {
 
 // ================= NATIVE ANDROID SYSTEM INTENTS (100% FREE) =================
 
-fun launchGoogleMapsIntent(context: Context, lat: Double, lng: Double) {
+fun launchGoogleMapsIntent(context: Context, lat: Double?, lng: Double?) {
     try {
         val mapsUri = Uri.parse("google.navigation:q=$lat,$lng&mode=d")
         val mapIntent = Intent(Intent.ACTION_VIEW, mapsUri).apply {
@@ -259,6 +292,7 @@ fun sendFreeWhatsAppIntent(context: Context, phoneNumber: String, messageText: S
     try {
         val formattedNumber = if (!phoneNumber.startsWith("91")) "91$phoneNumber" else phoneNumber
         val urlEncodedMessage = URLEncoder.encode(messageText, "UTF-8")
+
         val whatsappUri = Uri.parse("https://whatsapp.com")
 
         val chatIntent = Intent(Intent.ACTION_VIEW, whatsappUri).apply {

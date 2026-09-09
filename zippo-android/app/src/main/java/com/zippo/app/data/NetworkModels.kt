@@ -2,13 +2,22 @@ package com.zippo.app.data
 
 // Matches the incoming passenger JSON structure from MongoDB Atlas
 data class PassengerResponse(
-    val id: String,
-    val name: String,
-    val time: String,
-    val address: String,
-    val phoneNumber: String,
-    val latitude: Double,
-    val longitude: Double
+    val id: String? = "",
+    val name: String? = "Unknown Candidate",
+    val passengerType: String? = "SCHOOL",
+    val contractType: String? = "BOTH",
+    val monthlyFare: Int? = 1500,
+    val morningPickupTime: String? = "07:30 AM",
+    val eveningPickupTime: String? = "04:30 PM",
+    val homeCoordinates: LocationCoordinate? = LocationCoordinate(17.4344, 78.5562),
+    val destinationCoordinates: LocationCoordinate? = LocationCoordinate(17.4225, 78.5412),
+    val phoneNumber: String? = "9849011223",
+    val address: String? = "Collection Stop Node"
+)
+
+data class LocationCoordinate(
+    val lat: Double? = 17.4344,
+    val lng: Double? = 78.5562
 )
 
 // The request payload skeleton matching our BuildRosterDto contract on NestJS
@@ -35,7 +44,7 @@ data class TripSegmentResponse(
     val date: String,
     val shift: String,
     val tripNumber: Int,
-    val passengerIds: List<String>,
+    val passengerIds: List<PassengerResponse>,
     val status: String
 )
 

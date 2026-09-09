@@ -18,9 +18,9 @@ export class TripSegment extends Document {
   @Prop({ required: true })
   tripNumber: number; // e.g., Trip 1, Trip 2, Trip 3
 
-  @Prop({ type: [Types.ObjectId], ref: 'Passenger', required: true })
-  passengerIds: Types.ObjectId[]; // The array of passengers inside this specific batch chunk
-
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Passenger' }], required: true })
+  passengerIds: Types.ObjectId[] | any[];
+  
   @Prop({ required: true, enum: ['ASSIGNED', 'ACCEPTED', 'ACTIVE', 'COMPLETED'], default: 'ASSIGNED' })
   status: string;
 }
