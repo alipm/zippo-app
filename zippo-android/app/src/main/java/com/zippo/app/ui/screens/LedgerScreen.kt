@@ -1,10 +1,6 @@
 package com.zippo.app.ui.screens
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,7 +20,6 @@ import com.zippo.app.data.LedgerInvoiceResponse
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.*
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,16 +28,17 @@ fun LedgerScreen() {
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { ZippoApiService.create() }
 
+    // 🟢 ADD: Dynamic data state containers
     var isLoading by remember { mutableStateOf(false) }
     var totalCollected by remember { mutableStateOf(0) }
     var pendingDues by remember { mutableStateOf(0) }
     var invoiceList by remember { mutableStateOf<List<LedgerInvoiceResponse>>(emptyList()) }
 
+    // 🟢 ADD: Cloud synchronizer function
     fun syncFinancialLedgerFromCloud() {
         coroutineScope.launch {
             isLoading = true
             try {
-                // Execute network transport call to server
                 val response = apiService.fetchFinancialLedger(driverId = "60d0fe4f5311236168410d11")
                 if (response.success) {
                     totalCollected = response.totalCollected
@@ -50,19 +46,14 @@ fun LedgerScreen() {
                     invoiceList = response.invoices
                 }
             } catch (e: Exception) {
-                // Fallback scaffolding configuration parameters to allow offline interaction
-                totalCollected = 18500
-                pendingDues = 5000
-                invoiceList = listOf(
-                    LedgerInvoiceResponse("1", "Ali's Household (2 Kids)", "School Route - Both Shifts", 3000, false, "9849011223"),
-                    LedgerInvoiceResponse("2", "Vijay Kumar", "School Route - Evening Only", 1200, true, "9849044556")
-                )
+                Toast.makeText(context, "Khata Sync Failed: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
             }
         }
     }
 
+    // 🟢 ADD: Payment execution mutation worker
     fun executePaymentSettlement(invoiceId: String, method: String) {
         coroutineScope.launch {
             try {
@@ -71,16 +62,18 @@ fun LedgerScreen() {
                     request = UpdatePaymentStatusRequest(invoiceId, method)
                 )
                 Toast.makeText(context, "Balance cleared successfully", Toast.LENGTH_SHORT).show()
-                syncFinancialLedgerFromCloud() // Re-fetch updated totals dynamically
+                syncFinancialLedgerFromCloud() // Instant UI Refresh loop
             } catch (e: Exception) {
-                Toast.makeText(context, "Local Log Updated (Offline Mode)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Settlement failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
+    // 🟢 ADD: Lifecycle interceptor to trigger loading on screen mount
     LaunchedEffect(Unit) {
         syncFinancialLedgerFromCloud()
     }
+
     Scaffold(
         topBar = {
             TopAppBar(
