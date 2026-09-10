@@ -1,5 +1,6 @@
 package com.zippo.app.ui.screens
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +21,13 @@ import com.zippo.app.data.LedgerInvoiceResponse
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.*
 import kotlinx.coroutines.launch
+// 🟢 ADD these imports to the top of LedgerScreen.kt
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.RecognitionListener
+import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +77,45 @@ fun LedgerScreen() {
         }
     }
 
+    // 🟢 ADD: Native Speech Recognition Launcher Target
+    val speechRecognizerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            val results = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val spokenText = results?.firstOrNull() ?: ""
+
+            if (spokenText.isNotBlank()) {
+                Toast.makeText(context, "Voice Heard: \"$spokenText\"", Toast.LENGTH_LONG).show()
+
+                // 🚀 This text transcript can now be passed directly over the network transport
+                // pipeline straight to your NestJS server endpoint: /ai/voice-khata
+                coroutineScope.launch {
+                    try {
+                        // We will build the out-of-band network dispatch loop next!
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "AI Parse Failure: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    // Helper utility method to prompt the standard hardware recording container overlay
+    fun triggerHardwareVoiceCapture() {
+        val speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN") // Mapped directly for Hyderabadi localized phrasing configurations
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak payment data clearly (e.g., Ali paid 1500 upi)")
+        }
+        try {
+            speechRecognizerLauncher.launch(speechIntent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Speech Engine missing on this device framework", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // 🟢 ADD: Lifecycle interceptor to trigger loading on screen mount
     LaunchedEffect(Unit) {
         syncFinancialLedgerFromCloud()
@@ -84,7 +131,7 @@ fun LedgerScreen() {
         containerColor = DarkChassis,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { Toast.makeText(context, "Listening for voice command...", Toast.LENGTH_SHORT).show() },
+                onClick = { triggerHardwareVoiceCapture() }, // 🟢 UPDATE: Replaces the placeholder toast notice
                 containerColor = YellowAuto,
                 contentColor = Color.Black,
                 shape = CircleShape,

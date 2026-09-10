@@ -49,7 +49,7 @@ interface ZippoApiService {
     suspend fun createPassengerProfile(
         @Header("x-driver-id") driverId: String,
         @Body request: CreatePassengerRequest
-    ): Map<String, Any>
+    ): CreatePassengerResponse
 
     companion object {
         // Points to your local machine IP or cloud server gateway link

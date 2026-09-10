@@ -70,3 +70,10 @@ data class UpdatePaymentStatusRequest(
     val invoiceId: String,
     val paymentType: String // "CASH" or "UPI"
 )
+
+// 🟢 ADD: Explicit parsing model for profile creations
+data class CreatePassengerResponse(
+    val success: Boolean,
+    val message: String,
+    val passengerId: String
+)
