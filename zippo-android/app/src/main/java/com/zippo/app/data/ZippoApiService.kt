@@ -51,6 +51,12 @@ interface ZippoApiService {
         @Body request: CreatePassengerRequest
     ): CreatePassengerResponse
 
+    // 🟢 ADD: Dispatches voice strings straight up to the NestJS server AI core router
+    @POST("ai/voice-khata")
+    suspend fun processVoiceKhataEntry(
+        @Body request: VoiceKhataRequest
+    ): VoiceKhataResponse
+
     companion object {
         // Points to your local machine IP or cloud server gateway link
         // 10.0.2.2 is the official default internal proxy alias mapping straight to your laptop's localhost inside an Android Emulator

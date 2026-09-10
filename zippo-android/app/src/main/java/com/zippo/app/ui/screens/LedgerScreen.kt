@@ -28,6 +28,7 @@ import android.speech.RecognitionListener
 import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.zippo.app.data.VoiceKhataRequest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,11 +94,26 @@ fun LedgerScreen() {
                 // pipeline straight to your NestJS server endpoint: /ai/voice-khata
                 coroutineScope.launch {
                     try {
-                        // We will build the out-of-band network dispatch loop next!
+                        // 🟢 ADD: Execute asynchronous HTTP POST transmission call to the NestJS AI Agent
+                        val aiResponse = apiService.processVoiceKhataEntry(VoiceKhataRequest(spokenText))
+
+                        if (aiResponse.success) {
+                            val entityData = aiResponse.data
+                            // Pop an explicit high-visibility confirmation status dialog detailing extracted fields
+                            Toast.makeText(
+                                context,
+                                "🤖 AI Ledger Logged:\nFamily: ${entityData.targetFamily}\nAmount: ₹${entityData.amountCollected}\nType: ${entityData.paymentType}",
+                                Toast.LENGTH_LONG
+                            ).show()
+
+                            // Re-sync your financial ledger list cards immediately to balance updated data metrics
+                            syncFinancialLedgerFromCloud()
+                        }
                     } catch (e: Exception) {
-                        Toast.makeText(context, "AI Parse Failure: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "AI Sync Error: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
+
             }
         }
     }

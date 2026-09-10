@@ -77,3 +77,20 @@ data class CreatePassengerResponse(
     val message: String,
     val passengerId: String
 )
+
+// 🟢 ADD: Representation payload structure for voice ledger entries
+data class VoiceKhataRequest(
+    val transcript: String
+)
+
+data class VoiceKhataResponse(
+    val success: Boolean,
+    val message: String,
+    val data: VoiceParsedPayload
+)
+
+data class VoiceParsedPayload(
+    val targetFamily: String?,
+    val amountCollected: Int?,
+    val paymentType: String?
+)
