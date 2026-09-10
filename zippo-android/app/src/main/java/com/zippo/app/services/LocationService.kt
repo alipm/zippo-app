@@ -23,8 +23,9 @@ class LocationService : Service() {
 
     // Mock coordinates setup representing an upcoming passenger gate point near Nacharam
     // Real coordinates array strings will be loaded from your NestJS trips/build-roster pipeline
-    private val targetPassengerLat = 17.4421
-    private val targetPassengerLng = 78.5645
+    private var targetPassengerLat: Double = 17.4344 // Defaults to Nacharam Staging point
+    private var targetPassengerLng: Double = 78.5562
+    private var targetPassengerName: String = "Upcoming Stop"
     private var hasTriggeredAlert = false
 
     override fun onCreate() {
@@ -45,9 +46,18 @@ class LocationService : Service() {
     }
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // 🟢 ADD: Extract dynamic coordinate payloads passed from the UI thread intent bundle
+        intent?.let {
+            targetPassengerLat = it.getDoubleExtra("TARGET_LAT", 17.4344)
+            targetPassengerLng = it.getDoubleExtra("TARGET_LNG", 78.5562)
+            targetPassengerName = it.getStringExtra("TARGET_NAME") ?: "Upcoming Stop"
+            hasTriggeredAlert = false // Reset trigger flag for this specific target stop boundary
+        }
+
+        // Keep your existing notification configuration and fusedLocationClient updates completely unchanged!
         val notification: Notification = NotificationCompat.Builder(this, "zippo_tracking")
             .setContentTitle("Zippo Active Shift Tracking")
-            .setContentText("Monitoring live distance thresholds to upcoming gates...")
+            .setContentText("Monitoring live distance thresholds to $targetPassengerName...") // 🟢 UPDATE to read dynamic name
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .build()
 

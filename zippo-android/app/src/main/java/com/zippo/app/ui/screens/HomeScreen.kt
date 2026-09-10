@@ -42,22 +42,31 @@ fun HomeScreen() {
 
     fun toggleBackgroundLocationTracking() {
         val serviceIntent = Intent(context, LocationService::class.java)
+
         if (!isTrackingActive) {
-            // Fires up the high-accuracy background geofencing service module
+            // 🟢 ADD: Extract the active stop from your live database-backed roster list
+            val nextStop = activeRosterList.firstOrNull()
+            val activeCoords = if (isMorningShift) nextStop?.homeCoordinates else nextStop?.destinationCoordinates
+
+            // Bind the real database parameters to the outbound intent payload wrapper
+            serviceIntent.putExtra("TARGET_LAT", activeCoords?.lat ?: 17.4344)
+            serviceIntent.putExtra("TARGET_LNG", activeCoords?.lng ?: 78.5562)
+            serviceIntent.putExtra("TARGET_NAME", nextStop?.name ?: "First Passenger")
+
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 context.startForegroundService(serviceIntent)
             } else {
                 context.startService(serviceIntent)
             }
             isTrackingActive = true
-            Toast.makeText(context, "GPS Proximity Service Active", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Tracking Geofence set for: ${nextStop?.name ?: "First Stop"}", Toast.LENGTH_SHORT).show()
         } else {
-            // Gracefully stops background tracking to conserve phone battery parameters
             context.stopService(serviceIntent)
             isTrackingActive = false
             Toast.makeText(context, "GPS Proximity Service Stopped", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     fun fetchLiveRosterFromBackend() {
         coroutineScope.launch {
