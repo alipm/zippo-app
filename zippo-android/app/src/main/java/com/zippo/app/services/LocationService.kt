@@ -15,11 +15,17 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.*
 import kotlin.math.*
+import io.socket.client.IO
+import io.socket.client.Socket
+import org.json.JSONObject
 
 class LocationService : Service() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+
+    // 🟢 ADD: Persistent WebSocket client interface pointer instance
+    private var mSocket: Socket? = null
 
     // Mock coordinates setup representing an upcoming passenger gate point near Nacharam
     // Real coordinates array strings will be loaded from your NestJS trips/build-roster pipeline
@@ -43,6 +49,19 @@ class LocationService : Service() {
         }
 
         initializeLocationTrackingCallback()
+
+        // 🟢 ADD: Initialize loopback connection socket mapping directly to your NestJS server gateway namespace
+        try {
+            val options = IO.Options().apply {
+                forceNew = true
+                reconnection = true
+            }
+            // Connects straight out of the virtual phone space right into your laptop's localhost port 3000
+            mSocket = IO.socket("http://10.0.2", options)
+            mSocket?.connect()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -86,8 +105,8 @@ class LocationService : Service() {
                         targetPassengerLat, targetPassengerLng
                     )
 
-                    // 1,000-METER BOUNDARY GEOMETRIC TRIGGER POINT
-                    if (distanceInMeters <= 1000.0 && !hasTriggeredAlert) {
+                    // 1,000-METER BOUNDARY GEOMETRIC TRIGGER POINT ;later change 100 to 1000
+                    if (distanceInMeters <= 100.0 && !hasTriggeredAlert) {
                         hasTriggeredAlert = true
 
                         // Fire a background text alert broadcast loop to warn the driver context
@@ -96,6 +115,20 @@ class LocationService : Service() {
                             "🚨 ZIPPO ALERT: Within 1 Km of next stop! Open app to trigger alert.",
                             Toast.LENGTH_LONG
                         ).show()
+                    }
+
+                    // 🟢 ADD: Emit Real-Time Telemetry Payload Blocks straight over the socket highway
+                    try {
+                        val telemetryData = JSONObject().apply {
+                            put("driverId", "60d0fe4f5311236168410d11") // Matches your synced testing ID token profile context
+                            put("lat", location.latitude)
+                            put("lng", location.longitude)
+                            put("speed", location.speed * 3.6) // Converts raw meters/sec values to Km/h for the driver's display matrix
+                        }
+                        // Fires the packet over the persistent duplex WebSocket connection channel natively
+                        mSocket?.emit("update-location", telemetryData)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                 }
             }
@@ -115,6 +148,10 @@ class LocationService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         fusedLocationClient.removeLocationUpdates(locationCallback)
+
+        // 🟢 ADD: Disconnect stream to prevent memory leakage logs inside your emulator
+        mSocket?.disconnect()
+        mSocket?.off()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
