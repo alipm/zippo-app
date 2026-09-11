@@ -6,6 +6,7 @@ import { TripsModule } from './trips/trips.module.js';
 import { AiModule } from './ai/ai.module.js'; 
 import { PaymentsModule } from './payments/payments.module.js';
 import { PassengersModule } from './passengers/passengers.module.js';
+import { TrackingModule } from './tracking/tracking.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PassengersModule } from './passengers/passengers.module.js';
     AiModule,
     PaymentsModule,
     PassengersModule,
+    TrackingModule,
   ],
 })
 
