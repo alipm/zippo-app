@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    // 🟢 FIXED: Using explicit standard ID mapping for KSP plugin toolchains
+    id("com.google.devtools.ksp") version "1.9.23-1.0.20"
 }
 
 android {
@@ -58,19 +60,16 @@ dependencies {
             because("Prevents automatic pulling of higher unstable internal API targets")
         }
     }
-
     // 2. EXPLICIT STABLE COMPATIBLE VERSIONS FOR API 35 (Replaces the broken libs.androidx.X lines)
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
-
     // 3. CORE JETPACK COMPOSE UI CORE FRAMEWORKS
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -78,16 +77,17 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
     // 4. RETROFIT & HTTP PIPELINE NETWORK TRANSPORTS
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-
     // GOOGLE HIGH-ACCURACY PLAY SERVICES LOCATION PROVIDER
     implementation("com.google.android.gms:play-services-location:21.3.0")
-
     // REAL-TIME WEBSOCKET DUPLEX COMMUNICATION SOCKET.IO
     implementation("io.socket:socket.io-client:2.1.0") {
         exclude(group = "org.json", module = "json") // Prevents duplication conflicts with native Android JSON tools
     }
+    // NATIVE PERSISTENT ROOM SQLITE COMPONENT LAYOUTS
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
 }
