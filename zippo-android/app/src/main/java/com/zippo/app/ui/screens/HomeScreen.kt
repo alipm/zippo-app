@@ -26,6 +26,8 @@ import com.zippo.app.services.LocationService
 import com.zippo.app.ui.theme.*
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+import com.zippo.app.data.ZippoRoomDatabase
+import com.zippo.app.data.LocalPassengerEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +35,10 @@ fun HomeScreen() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { ZippoApiService.create() }
+
+    // 🟢 ADD: Instantiate the local SQLite DAO holder controller profile
+    val database = remember { ZippoRoomDatabase.getDatabase(context) }
+    val passengerDao = remember { database.passengerCacheDao() }
 
     var isMorningShift by remember { mutableStateOf(true) }
     var selectedTripTab by remember { mutableStateOf(1) }
@@ -85,10 +91,9 @@ fun HomeScreen() {
                 )
 
                 if (response.success && response.data.isNotEmpty()) {
-                    activeRosterList = response.data.flatMap { segment ->
+                    val incomingList = response.data.flatMap { segment ->
                         if (segment.tripNumber == selectedTripTab) {
                             segment.passengerIds.map { profile ->
-                                // 🟢 FIXED: Safely applies default boundaries to prevent null runtime checks
                                 PassengerResponse(
                                     id = profile.id ?: "",
                                     name = profile.name ?: "Unknown Candidate",
@@ -97,23 +102,75 @@ fun HomeScreen() {
                                     monthlyFare = profile.monthlyFare ?: 1500,
                                     morningPickupTime = profile.morningPickupTime ?: "07:30 AM",
                                     eveningPickupTime = profile.eveningPickupTime ?: "04:30 PM",
-                                    homeCoordinates = profile.homeCoordinates ?: LocationCoordinate(17.4344, 78.5562),
-                                    destinationCoordinates = profile.destinationCoordinates ?: LocationCoordinate(17.4225, 78.5412),
+                                    homeCoordinates = profile.homeCoordinates,
+                                    destinationCoordinates = profile.destinationCoordinates,
                                     phoneNumber = profile.phoneNumber ?: "9849011223",
                                     address = if ((profile.passengerType ?: "SCHOOL") == "SCHOOL") "School Pickup Node" else "Office Transit Node"
                                 )
                             }
                         } else emptyList()
                     }
+
+                    activeRosterList = incomingList
                     Toast.makeText(context, "Cloud sync complete!", Toast.LENGTH_SHORT).show()
-                } else {
-                    activeRosterList = emptyList()
+
+                    // 🟢 ADD: Asynchronously persist the fresh network batch right onto local SQLite disk cache tables
+                    coroutineScope.launch {
+                        try {
+                            passengerDao.clearLocalCacheTable() // Wipes out stale day configurations
+                            val entitiesToCache = incomingList.map { p ->
+                                LocalPassengerEntity(
+                                    id = p.id ?: "",
+                                    name = p.name ?: "",
+                                    passengerType = p.passengerType ?: "",
+                                    contractType = p.contractType ?: "",
+                                    monthlyFare = p.monthlyFare ?: 1500,
+                                    morningPickupTime = p.morningPickupTime ?: "",
+                                    eveningPickupTime = p.eveningPickupTime ?: "",
+                                    homeLat = p.homeCoordinates?.lat ?: 17.4344,
+                                    homeLng = p.homeCoordinates?.lng ?: 78.5562,
+                                    destLat = p.destinationCoordinates?.lat ?: 17.4225,
+                                    destLng = p.destinationCoordinates?.lng ?: 78.5412,
+                                    phoneNumber = p.phoneNumber ?: "",
+                                    address = p.address ?: ""
+                                )
+                            }
+                            passengerDao.insertPassengerBatch(entitiesToCache)
+                        } catch (dbEx: Exception) {
+                            dbEx.printStackTrace()
+                        }
+                    }
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Sync Error: ${e.message}", Toast.LENGTH_LONG).show()
+                // 🟢 FIXED: Gracefully intercepts network blocks and switches instantly to offline local data files!
+                Toast.makeText(context, "Network Offline. Loading local cache...", Toast.LENGTH_SHORT).show()
+
+                try {
+                    val cachedEntities = passengerDao.getAllCachedPassengers()
+                    if (cachedEntities.isNotEmpty()) {
+                        activeRosterList = cachedEntities.map { entity ->
+                            PassengerResponse(
+                                id = entity.id,
+                                name = entity.name,
+                                passengerType = entity.passengerType,
+                                contractType = entity.contractType,
+                                monthlyFare = entity.monthlyFare,
+                                morningPickupTime = entity.morningPickupTime,
+                                eveningPickupTime = entity.eveningPickupTime,
+                                homeCoordinates = com.zippo.app.data.LocationCoordinate(entity.homeLat, entity.homeLng),
+                                destinationCoordinates = com.zippo.app.data.LocationCoordinate(entity.destLat, entity.destLng),
+                                phoneNumber = entity.phoneNumber,
+                                address = entity.address
+                            )
+                        }
+                    }
+                } catch (cacheEx: Exception) {
+                    Toast.makeText(context, "Local Disk Read Failure: ${cacheEx.message}", Toast.LENGTH_LONG).show()
+                }
             } finally {
                 isLoading = false
             }
+
         }
     }
 
