@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zippo.app.data.BuildRosterRequest
 import com.zippo.app.data.DriverLocation
-import com.zippo.app.data.LocationCoordinate
 import com.zippo.app.data.PassengerResponse
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.services.LocationService
@@ -28,6 +27,9 @@ import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import com.zippo.app.data.ZippoRoomDatabase
 import com.zippo.app.data.LocalPassengerEntity
+// 🟢 ADD this import line to your file header list:
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -194,6 +196,48 @@ fun HomeScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
+            // 🟢 ADD: High-Visibility Real-Time Map Radar Interface Component Container
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp), // Dedicated display matrix height layer
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceGray)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Renders structural spatial tracking visual anchors inside your staging environment
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text("🗺️ LIVE RADAR: NACHARAM SECTOR ACTIVE", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Dynamic location status text based on your background service states
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(if (isTrackingActive) SuccessGreen else AlertRed, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isTrackingActive) "Streaming Telemetry: 10.0.2.2" else "GPS Stream Offline",
+                                color = Color.LightGray,
+                                fontSize = 13.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // Visual tracking nodes representing your active database coordinates structure
+                        Text("🎯 Target Gate: ${activeRosterList.firstOrNull()?.name ?: "No Stop Active"}", color = YellowAuto, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("📐 Radius Geofence Bound: 100 Meters Active", color = Color.LightGray, fontSize = 12.sp)
+                    }
+                }
+            }
             // 🟢 HARDWARE TRACKING MASTER BUTTON COMMAND TARGET
             Button(
                 onClick = { toggleBackgroundLocationTracking() },

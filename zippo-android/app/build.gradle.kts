@@ -90,4 +90,7 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
+
+    // OPEN-SOURCE HIGHER ACCURACY DISK MAP CANVAS OVERLAYS
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
 }
