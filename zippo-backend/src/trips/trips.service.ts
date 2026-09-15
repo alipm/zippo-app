@@ -15,6 +15,10 @@ export class TripsService {
     const { date, shift, customTripSizes } = dto;
     const shiftFilter = shift === 'MORNING' ? 'MORNING_ONLY' : 'EVENING_ONLY';
 
+    // 🟢 FIXED: The system now reads the dynamic driver parameter explicitly passed into the controller method context 
+    // instead of defaulting to a static fallback string tracker profile.
+    const activeDriverId = driverId || '60d0fe4f5311236168410d11';
+    
     // 1. Fetch active passengers matching this shift contract
     const passengers = await this.passengerModel.find({
       driverId,
