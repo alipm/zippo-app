@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: zippo-backend-service
+    runtime: node
+    plan: free # Utilizes Render's zero-cost development tier pipeline
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # We will paste your secure MongoDB Atlas string directly inside the Render Dashboard
