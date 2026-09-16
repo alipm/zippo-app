@@ -57,7 +57,7 @@ class LocationService : Service() {
                 reconnection = true
             }
             // Connects straight out of the virtual phone space right into your laptop's localhost port 3000
-            mSocket = IO.socket("http://10.0.2", options)
+            mSocket = IO.socket("https://zippo-backend.onrender.com", options)
             mSocket?.connect()
         } catch (e: Exception) {
             e.printStackTrace()

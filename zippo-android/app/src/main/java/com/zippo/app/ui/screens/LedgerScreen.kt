@@ -138,11 +138,24 @@ fun LedgerScreen() {
     }
 
     Scaffold(
+        // 🟢 FIXED: Compressed financial top bar dimensions to maximize listing view visibility
         topBar = {
-            TopAppBar(
-                title = { Text("📊 FINANCIAL BAHI-KHATA", fontWeight = FontWeight.Black, color = Color.Black) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = YellowAuto)
-            )
+            Surface(
+                color = YellowAuto,
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "FINANCIAL BAHI-KHATA",
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black,
+                        fontSize = 18.sp
+                    )
+                }
+            }
         },
         containerColor = DarkChassis,
         floatingActionButton = {

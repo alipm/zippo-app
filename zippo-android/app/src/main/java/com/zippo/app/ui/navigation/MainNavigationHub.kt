@@ -65,8 +65,15 @@ fun MainNavigationHub() {
         },
         containerColor = DarkChassis
     ) { innerPadding ->
-        // DYNAMIC WORKSPACE ROUTER INJECTION BLOCK
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+
+        // 🟢 FIXED: The NavHost container now enforces explicit innerPadding boundaries down to your screen views.
+        // This ensures no inner dashboard elements or ledger button matrices get hidden underneath the footer tabs!
+        Box(
+            modifier = Modifier
+                .padding(innerPadding) // Safely accounts for the 64.dp height allocation of the footer hub
+                .fillMaxSize()
+                .background(DarkChassis)
+        ) {
             when (currentScreen) {
                 is Screen.Home -> HomeScreen()
                 is Screen.Ledger -> LedgerScreen()

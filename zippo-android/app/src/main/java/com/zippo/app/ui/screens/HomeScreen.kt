@@ -180,11 +180,24 @@ fun HomeScreen() {
         fetchLiveRosterFromBackend()
     }
     Scaffold(
+        // 🟢 FIXED: Removed the auto-rickshaw emoji icon and significantly reduced layout height dimensions
         topBar = {
-            TopAppBar(
-                title = { Text("🛺 ZIPPO DASHBOARD", fontWeight = FontWeight.Black, color = Color.Black) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = YellowAuto)
-            )
+            Surface(
+                color = YellowAuto,
+                modifier = Modifier.fillMaxWidth().height(56.dp) // Force sleek, thin toolbar sizing layout bounds
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "ZIPPO DASHBOARD",
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black,
+                        fontSize = 18.sp
+                    )
+                }
+            }
         },
         containerColor = DarkChassis
     ) { innerPadding ->

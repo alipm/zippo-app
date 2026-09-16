@@ -60,7 +60,7 @@ interface ZippoApiService {
     companion object {
         // Points to your local machine IP or cloud server gateway link
         // 10.0.2.2 is the official default internal proxy alias mapping straight to your laptop's localhost inside an Android Emulator
-        private const val BASE_URL = "http://10.0.2.2:3000/"
+        private const val BASE_URL = "https://zippo-backend.onrender.com/"
 
         fun create(): ZippoApiService {
             return Retrofit.Builder()
