@@ -47,6 +47,8 @@ fun HomeScreen() {
     var isLoading by remember { mutableStateOf(false) }
     var isTrackingActive by remember { mutableStateOf(false) }
     var activeRosterList by remember { mutableStateOf<List<PassengerResponse>>(emptyList()) }
+    // 🟢 ADD: Tracks exact active trip splits returned from MongoDB Atlas dynamically
+    var dynamicAvailableTrips by remember { mutableStateOf<List<Int>>(listOf(1)) }
 
     fun toggleBackgroundLocationTracking() {
         val serviceIntent = Intent(context, LocationService::class.java)
@@ -80,6 +82,7 @@ fun HomeScreen() {
         coroutineScope.launch {
             isLoading = true
             try {
+                val uniqueDeviceDriverId = "driver_moto_g32"
                 val requestPayload = BuildRosterRequest(
                     date = "2026-09-09",
                     shift = if (isMorningShift) "MORNING" else "EVENING",
@@ -88,11 +91,13 @@ fun HomeScreen() {
                 )
 
                 val response = apiService.buildDailyRoster(
-                    driverId = "60d0fe4f5311236168410d11",
+                    driverId = uniqueDeviceDriverId,
                     request = requestPayload
                 )
 
                 if (response.success && response.data.isNotEmpty()) {
+                    // 🟢 ADD: Extracts exact list of trips calculated by your backend service
+                    dynamicAvailableTrips = response.data.map { it.tripNumber }.distinct().sorted()
                     val incomingList = response.data.flatMap { segment ->
                         if (segment.tripNumber == selectedTripTab) {
                             segment.passengerIds.map { profile ->
@@ -179,36 +184,31 @@ fun HomeScreen() {
     LaunchedEffect(isMorningShift) {
         fetchLiveRosterFromBackend()
     }
-    Scaffold(
-        // 🟢 FIXED: Removed the auto-rickshaw emoji icon and significantly reduced layout height dimensions
-        topBar = {
-            Surface(
-                color = YellowAuto,
-                modifier = Modifier.fillMaxWidth().height(56.dp) // Force sleek, thin toolbar sizing layout bounds
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkChassis)
+    ) {
+        // A. Slim Top App Bar Banner Component (Fixed Height)
+        Surface(
+            color = YellowAuto,
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(
-                        text = "ZIPPO DASHBOARD",
-                        fontWeight = FontWeight.Black,
-                        color = Color.Black,
-                        fontSize = 18.sp
-                    )
-                }
+                Text("ZIPPO DASHBOARD", fontWeight = FontWeight.Black, color = Color.Black, fontSize = 18.sp)
             }
-        },
-        containerColor = DarkChassis
-    ) { innerPadding ->
+        }
+        // B. Inner Scrollable Content Frame Container (Now layout elements have clear margins!)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             // 🟢 ADD: High-Visibility Real-Time Map Radar Interface Component Container
             Card(
                 modifier = Modifier
@@ -303,11 +303,12 @@ fun HomeScreen() {
                     Text("Active Load Balancing: 3+3+11 Split Mode", color = Color.LightGray, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(1, 2, 3).forEach { tripNum ->
+                        // 🟢 WITH THIS DYNAMIC LOOP MATRIX:
+                        dynamicAvailableTrips.forEach { tripNum ->
                             FilterChip(
                                 selected = selectedTripTab == tripNum,
                                 onClick = { selectedTripTab = tripNum },
-                                label = { Text(if(tripNum == 3) "Trip 3 (11)" else "Trip $tripNum (3)", fontWeight = FontWeight.Bold) }
+                                label = { Text("Trip $tripNum", fontWeight = FontWeight.Bold) }
                             )
                         }
                     }
@@ -343,34 +344,17 @@ fun HomeScreen() {
                                 ) {
                                     Text("🗺️ NAV")
                                 }
-
                             }
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // 🟢 BOTTOM ACTION TARGET BUTTONS ROW
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            // 🟢 FIXED: Removed manual 1km alert. Dials the actual database-stored passenger number directly!
+                            Button(
+                                onClick = { triggerNativeDialerIntent(context, passenger.phoneNumber ?: "8121242633") },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(8.dp)
                             ) {
-                                Button(
-                                    onClick = {
-                                        val msg = "Zippo Alert: Arriving in 2 minutes! Please step out to the pickup point."
-                                        sendFreeWhatsAppIntent(context, passenger.phoneNumber ?: "9849011223", msg)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                                    modifier = Modifier.weight(1.2f).height(48.dp),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("📱 1KM ALERT", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                }
-                                Button(
-                                    onClick = { triggerNativeDialerIntent(context, passenger.phoneNumber ?: "9849011223") },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
-                                    modifier = Modifier.weight(0.8f).height(48.dp),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("📞 CALL", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                }
+                                Text("📞 CALL PARENT CONTACT", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                             }
                         }
                     }

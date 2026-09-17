@@ -3,10 +3,12 @@ package com.zippo.app.data
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 // 🟢 PASSENGER REGISTRATION REQUEST PAYLOAD SKELETON DEFINITION
 data class CreatePassengerRequest(
@@ -17,7 +19,8 @@ data class CreatePassengerRequest(
     val morningPickupTime: String,
     val eveningPickupTime: String,
     val homeCoordinates: CoordinateNode,
-    val destinationCoordinates: CoordinateNode
+    val destinationCoordinates: CoordinateNode,
+    val profileImageBase64: String? = null
 )
 
 data class CoordinateNode(val lat: Double, val lng: Double)
@@ -56,6 +59,17 @@ interface ZippoApiService {
     suspend fun processVoiceKhataEntry(
         @Body request: VoiceKhataRequest
     ): VoiceKhataResponse
+
+    @GET("passengers/list")
+    suspend fun fetchAllPassengers(
+        @Header("x-driver-id") driverId: String
+    ): List<PassengerResponse>
+
+    @DELETE("passengers/{id}")
+    suspend fun deletePassengerProfile(
+        @Header("x-driver-id") driverId: String,
+        @Path("id") passengerId: String
+    ): Map<String, Any>
 
     companion object {
         // Points to your local machine IP or cloud server gateway link

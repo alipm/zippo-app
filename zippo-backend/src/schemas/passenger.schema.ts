@@ -35,6 +35,9 @@ export class Passenger extends Document {
 
   @Prop({ default: true })
   isActive: boolean; // Soft delete tracking flag
+
+  @Prop({ required: false, default: null })
+  profileImageBase64: string;
 }
 
 export const PassengerSchema = SchemaFactory.createForClass(Passenger);

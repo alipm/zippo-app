@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEnum, IsNumber, IsObject } from 'class-validator';
+import { IsNotEmpty, IsString, IsEnum, IsNumber, IsObject, IsOptional } from 'class-validator';
 
 export class CreatePassengerDto {
   @IsNotEmpty()
@@ -32,4 +32,8 @@ export class CreatePassengerDto {
   @IsNotEmpty()
   @IsObject()
   destinationCoordinates: { lat: number; lng: number };
+
+  @IsOptional()
+  @IsString()
+  profileImageBase64?: string;
 }

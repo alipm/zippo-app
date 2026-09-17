@@ -36,7 +36,7 @@ fun LedgerScreen() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { ZippoApiService.create() }
-
+    val uniqueDeviceDriverId = "driver_moto_g32"
     // 🟢 ADD: Dynamic data state containers
     var isLoading by remember { mutableStateOf(false) }
     var totalCollected by remember { mutableStateOf(0) }
@@ -48,7 +48,7 @@ fun LedgerScreen() {
         coroutineScope.launch {
             isLoading = true
             try {
-                val response = apiService.fetchFinancialLedger(driverId = "60d0fe4f5311236168410d11")
+                val response = apiService.fetchFinancialLedger(uniqueDeviceDriverId)
                 if (response.success) {
                     totalCollected = response.totalCollected
                     pendingDues = response.pendingDues
@@ -67,11 +67,12 @@ fun LedgerScreen() {
         coroutineScope.launch {
             try {
                 apiService.clearInvoiceBalance(
-                    driverId = "60d0fe4f5311236168410d11",
+                    driverId = uniqueDeviceDriverId,
                     request = UpdatePaymentStatusRequest(invoiceId, method)
                 )
-                Toast.makeText(context, "Balance cleared successfully", Toast.LENGTH_SHORT).show()
-                syncFinancialLedgerFromCloud() // Instant UI Refresh loop
+                Toast.makeText(context, "Payment Cleared Successfully!", Toast.LENGTH_SHORT).show()
+                // 🟢 FIXED: Explicitly triggers an instant cloud re-sync to visually change state from DUE to PAID on the screen!
+                syncFinancialLedgerFromCloud()
             } catch (e: Exception) {
                 Toast.makeText(context, "Settlement failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
@@ -100,11 +101,7 @@ fun LedgerScreen() {
                         if (aiResponse.success) {
                             val entityData = aiResponse.data
                             // Pop an explicit high-visibility confirmation status dialog detailing extracted fields
-                            Toast.makeText(
-                                context,
-                                "🤖 AI Ledger Logged:\nFamily: ${entityData.targetFamily}\nAmount: ₹${entityData.amountCollected}\nType: ${entityData.paymentType}",
-                                Toast.LENGTH_LONG
-                            ).show()
+                            Toast.makeText(context, "🤖 AI Logged: ${aiResponse.message}", Toast.LENGTH_LONG).show()
 
                             // Re-sync your financial ledger list cards immediately to balance updated data metrics
                             syncFinancialLedgerFromCloud()
@@ -149,7 +146,7 @@ fun LedgerScreen() {
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = "FINANCIAL BAHI-KHATA",
+                        text = "Money Ledger",
                         fontWeight = FontWeight.Black,
                         color = Color.Black,
                         fontSize = 18.sp
