@@ -36,7 +36,12 @@ import com.zippo.app.data.CoordinateNode
 import com.zippo.app.data.CreatePassengerRequest
 import com.zippo.app.data.PassengerResponse
 import com.zippo.app.data.ZippoApiService
+import com.zippo.app.data.repository.PassengerRepository
+import com.zippo.app.model.PassengerFormState
+import com.zippo.app.ui.onboarding.components.PassengerCard
 import com.zippo.app.ui.theme.*
+import com.zippo.app.utils.AppConstants
+import com.zippo.app.utils.ImageUtils
 import kotlinx.coroutines.launch
 
 // State navigation mode tracks within the setup window space
@@ -47,46 +52,35 @@ enum class ManagementMode { LIST_VIEW, ENTRY_FORM }
 fun OnboardingScreen() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
     val apiService = remember { ZippoApiService.create() }
+    val repository = remember { PassengerRepository(apiService) }
+
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     // Screen tracking state containers
     var currentMode by remember { mutableStateOf(ManagementMode.LIST_VIEW) }
     var editingPassengerId by remember { mutableStateOf<String?>(null) }
 
-    // Input form functional state metrics
-    var passengerName by remember { mutableStateOf("") }
-    var contactPhone by remember { mutableStateOf("") }
-    var fixedFare by remember { mutableStateOf("") }
-    var contractSelection by remember { mutableStateOf("BOTH") }
-    var passengerTypeSelection by remember { mutableStateOf("SCHOOL") }
-    var morningTimeInput by remember { mutableStateOf("07:30 AM") }
-    var eveningTimeInput by remember { mutableStateOf("04:30 PM") }
-    var homeLatInput by remember { mutableStateOf("17.4344") }
-    var homeLngInput by remember { mutableStateOf("78.5562") }
-    var destLatInput by remember { mutableStateOf("17.4225") }
-    var destLngInput by remember { mutableStateOf("78.5412") }
+    var formState by remember {
+        mutableStateOf(
+            PassengerFormState()
+        )
+    }
 
-    var capturedPhotoPreview by remember { mutableStateOf<Bitmap?>(null) }
     var registeredList by remember { mutableStateOf<List<PassengerResponse>>(emptyList()) }
     var isLoaderActive by remember { mutableStateOf(false) }
 
-    // 🟢 ADD: Compresses raw hardware bitmaps down to a lightweight Base64 string character set
-    fun convertBitmapToBase64(bitmap: Bitmap?): String? {
-        if (bitmap == null) return null
-        val outputStream = java.io.ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream) // Compresses to 70% quality to save cloud network bandwidth
-        val byteArray = outputStream.toByteArray()
-        return android.util.Base64.encodeToString(byteArray, android.util.Base64.DEFAULT)
+    fun resetForm() {
+        formState = PassengerFormState()
+        editingPassengerId = null
     }
 
-    // 🟢 FUNCTION: Pull all registered client sheets from backend cloud
     fun loadRegisteredPassengersFromCloud() {
         coroutineScope.launch {
             isLoaderActive = true
             try {
-                // Dynamic driver separation anchor context
-                val responseList = apiService.fetchAllPassengers(driverId = "driver_moto_g32")
+                val responseList = repository.getPassengers(driverId = AppConstants.DEMO_DRIVER_ID)
                 registeredList = responseList
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -97,7 +91,7 @@ fun OnboardingScreen() {
     }
 
     fun handleProfileSubmission() {
-        if (passengerName.isBlank() || contactPhone.isBlank() || fixedFare.isBlank()) {
+        if (formState.passengerName.isBlank() || formState.contactPhone.isBlank() || formState.fixedFare.isBlank()) {
             Toast.makeText(
                 context,
                 "Please complete all mandatory fields first",
@@ -106,36 +100,52 @@ fun OnboardingScreen() {
             return
         }
 
-        val base64ImageString = convertBitmapToBase64(capturedPhotoPreview)
+        val base64ImageString = ImageUtils.convertBitmapToBase64(formState.capturedPhotoPreview)
 
         coroutineScope.launch {
             isLoaderActive = true
             try {
                 val payload = CreatePassengerRequest(
-                    name = passengerName,
-                    passengerType = passengerTypeSelection,
-                    contractType = contractSelection,
-                    monthlyFare = fixedFare.toIntOrNull() ?: 1500,
-                    morningPickupTime = if (contractSelection != "EVENING") morningTimeInput else "N/A",
-                    eveningPickupTime = if (contractSelection != "MORNING") eveningTimeInput else "N/A",
+                    name = formState.passengerName,
+                    passengerType = formState.passengerTypeSelection,
+                    contractType = formState.contractSelection,
+                    monthlyFare = formState.fixedFare.toIntOrNull() ?: AppConstants.DEFAULT_FARE.toInt(),
+                    morningPickupTime = if (formState.contractSelection != "EVENING") formState.morningTimeInput else "N/A",
+                    eveningPickupTime = if (formState.contractSelection != "MORNING") formState.eveningTimeInput else "N/A",
                     homeCoordinates = CoordinateNode(
-                        homeLatInput.toDoubleOrNull() ?: 17.4344,
-                        homeLngInput.toDoubleOrNull() ?: 78.5562
+                        formState.homeLatInput.toDoubleOrNull() ?: AppConstants.DEFAULT_HOME_LAT.toDouble(),
+                        formState.homeLngInput.toDoubleOrNull() ?: AppConstants.DEFAULT_HOME_LNG.toDouble()
                     ),
                     destinationCoordinates = CoordinateNode(
-                        destLatInput.toDoubleOrNull() ?: 17.4225,
-                        destLngInput.toDoubleOrNull() ?: 78.5412
+                        formState.destLatInput.toDoubleOrNull() ?: AppConstants.DEFAULT_DEST_LAT.toDouble(),
+                        formState.destLngInput.toDoubleOrNull() ?: AppConstants.DEFAULT_DEST_LNG.toDouble()
                     ),
                     profileImageBase64 = base64ImageString
                 )
 
-                apiService.createPassengerProfile(driverId = "driver_moto_g32", request = payload)
+                if (editingPassengerId == null) {
+
+                    repository.createPassenger(
+                        driverId = AppConstants.DEMO_DRIVER_ID,
+                        request = payload
+                    )
+
+                } else {
+
+                    repository.updatePassenger(
+                        driverId = AppConstants.DEMO_DRIVER_ID,
+                        passengerId = editingPassengerId!!,
+                        request = payload
+                    )
+
+                }
+
                 Toast.makeText(
                     context,
                     "💾 Passenger record synchronized safely!",
                     Toast.LENGTH_SHORT
                 ).show()
-
+                resetForm()
                 currentMode = ManagementMode.LIST_VIEW
                 loadRegisteredPassengersFromCloud()
             } catch (e: Exception) {
@@ -150,14 +160,14 @@ fun OnboardingScreen() {
     fun triggerProfileDelete(passengerId: String) {
         coroutineScope.launch {
             try {
-                apiService.deletePassengerProfile(
-                    driverId = "driver_moto_g32",
+                repository.deletePassenger(
+                    driverId = AppConstants.DEMO_DRIVER_ID,
                     passengerId = passengerId
                 )
                 Toast.makeText(context, "🗑️ Passenger document deleted", Toast.LENGTH_SHORT).show()
                 loadRegisteredPassengersFromCloud()
             } catch (e: Exception) {
-                Toast.makeText(context, "Removal mutation execution successful", Toast.LENGTH_SHORT)
+                Toast.makeText(context, "Failed to delete passenger", Toast.LENGTH_SHORT)
                     .show()
                 loadRegisteredPassengersFromCloud()
             }
@@ -172,18 +182,28 @@ fun OnboardingScreen() {
                 if (loc != null) {
                     onFetched(loc.latitude, loc.longitude)
                 } else {
-                    Toast.makeText(context, "GPS searching satellite nodes. Stand under open sky.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "GPS searching satellite nodes. Stand under open sky.",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         } catch (e: SecurityException) {
-            Toast.makeText(context, "Location permission missing. Enable in phone settings.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                "Location permission missing. Enable in phone settings.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
 
     val systemCameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? -> if (bitmap != null) capturedPhotoPreview = bitmap }
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) formState = formState.copy(capturedPhotoPreview = bitmap)
+    }
 
     val systemGalleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -201,7 +221,7 @@ fun OnboardingScreen() {
                     @Suppress("DEPRECATION")
                     MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                 }
-                capturedPhotoPreview = bitmap
+                formState = formState.copy(capturedPhotoPreview = bitmap)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -214,7 +234,12 @@ fun OnboardingScreen() {
 
     when (currentMode) {
         ManagementMode.LIST_VIEW -> {
-            Box(modifier = Modifier.fillMaxSize().background(DarkChassis).padding(16.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkChassis)
+                    .padding(16.dp)
+            ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -225,7 +250,7 @@ fun OnboardingScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "📋 REGISTERED PEOPLE COLLECTION",
+                            "📋 REGISTERED PEOPLE",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Black,
                             color = Color.White
@@ -239,7 +264,9 @@ fun OnboardingScreen() {
 
                     if (registeredList.isEmpty() && !isLoaderActive) {
                         Box(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -250,83 +277,91 @@ fun OnboardingScreen() {
                         }
                     } else {
                         LazyColumn(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(registeredList) { passenger ->
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = SurfaceGray),
-                                    modifier = Modifier.fillMaxWidth().clickable {
+
+                                val passengerBitmap =
+                                    ImageUtils.decodeBase64ToBitmap(passenger.profileImageBase64)
+
+                                PassengerCard(
+                                    passenger = passenger,
+                                    passengerBitmap = passengerBitmap,
+
+                                    onClick = {
+
                                         editingPassengerId = passenger.id
-                                        passengerName = passenger.name ?: ""
-                                        contactPhone = passenger.phoneNumber ?: ""
-                                        fixedFare = passenger.monthlyFare?.toString() ?: "1500"
-                                        contractSelection = passenger.contractType ?: "BOTH"
-                                        passengerTypeSelection = passenger.passengerType ?: "SCHOOL"
-                                        homeLatInput =
-                                            passenger.homeCoordinates?.lat?.toString() ?: "17.4344"
-                                        homeLngInput =
-                                            passenger.homeCoordinates?.lng?.toString() ?: "78.5562"
-                                        destLatInput =
+
+                                        formState = formState.copy(
+
+                                            passengerName =
+                                            passenger.name ?: "",
+
+                                            contactPhone =
+                                            passenger.phoneNumber ?: "",
+
+                                            fixedFare =
+                                            passenger.monthlyFare?.toString()
+                                                ?: AppConstants.DEFAULT_FARE,
+
+                                            contractSelection =
+                                            passenger.contractType ?: AppConstants.DEFAULT_CONTRACT_TYPE,
+
+                                            passengerTypeSelection =
+                                            passenger.passengerType ?: AppConstants.DEFAULT_TYPE,
+
+                                            homeLatInput =
+                                            passenger.homeCoordinates?.lat?.toString()
+                                                ?: AppConstants.DEFAULT_HOME_LAT,
+
+                                            homeLngInput =
+                                            passenger.homeCoordinates?.lng?.toString()
+                                                ?: AppConstants.DEFAULT_HOME_LNG,
+
+                                            destLatInput =
                                             passenger.destinationCoordinates?.lat?.toString()
-                                                ?: "17.4225"
-                                        destLngInput =
+                                                ?: AppConstants.DEFAULT_DEST_LAT,
+
+                                            destLngInput =
                                             passenger.destinationCoordinates?.lng?.toString()
-                                                ?: "78.5412"
-                                        currentMode = ManagementMode.ENTRY_FORM
+                                                ?: AppConstants.DEFAULT_DEST_LNG,
+
+                                            capturedPhotoPreview =
+                                            ImageUtils.decodeBase64ToBitmap(
+                                                passenger.profileImageBase64
+                                            )
+                                        )
+
+                                        currentMode =
+                                            ManagementMode.ENTRY_FORM
+                                    },
+
+                                    onDelete = {
+                                        triggerProfileDelete(
+                                            passenger.id ?: ""
+                                        )
                                     }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                passenger.name ?: "Subscriber",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp,
-                                                color = TextMain
-                                            )
-                                            Text(
-                                                "📱 Phone: ${passenger.phoneNumber} | Fare: ₹${passenger.monthlyFare}",
-                                                fontSize = 13.sp,
-                                                color = Color.LightGray
-                                            )
-                                            Text(
-                                                "📍 Sector: ${passenger.address}",
-                                                fontSize = 12.sp,
-                                                color = YellowAuto
-                                            )
-                                        }
-                                        IconButton(onClick = {
-                                            triggerProfileDelete(
-                                                passenger.id ?: ""
-                                            )
-                                        }) {
-                                            Text("🗑️", fontSize = 20.sp)
-                                        }
-                                    }
-                                }
+                                )
                             }
                         }
                     }
 
                     Button(
                         onClick = {
-                            editingPassengerId = null
-                            passengerName = ""
-                            contactPhone = ""
-                            fixedFare = "1500"
-                            capturedPhotoPreview = null
+                            resetForm()
                             currentMode = ManagementMode.ENTRY_FORM
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            "➕ REGISTER NEW PASSENGER PROFILE",
+                            "➕ REGISTER NEW PASSENGER ",
                             fontWeight = FontWeight.Black,
                             color = Color.White
                         )
@@ -337,7 +372,10 @@ fun OnboardingScreen() {
 
         ManagementMode.ENTRY_FORM -> {
             Column(
-                modifier = Modifier.fillMaxSize().background(DarkChassis).padding(16.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkChassis)
+                    .padding(16.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -360,7 +398,8 @@ fun OnboardingScreen() {
                 }
 
                 OutlinedTextField(
-                    value = passengerName, onValueChange = { passengerName = it },
+                    value = formState.passengerName,
+                    onValueChange = { formState = formState.copy(passengerName = it) },
                     label = { Text("Passenger Full Name") },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = YellowAuto,
@@ -376,18 +415,21 @@ fun OnboardingScreen() {
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Box(
-                            modifier = Modifier.size(70.dp)
+                            modifier = Modifier
+                                .size(70.dp)
                                 .background(Color.DarkGray, RoundedCornerShape(8.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (capturedPhotoPreview != null) {
+                            if (formState.capturedPhotoPreview != null) {
                                 Image(
-                                    bitmap = capturedPhotoPreview!!.asImageBitmap(),
+                                    bitmap = formState.capturedPhotoPreview!!.asImageBitmap(),
                                     contentDescription = null,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
@@ -414,7 +456,9 @@ fun OnboardingScreen() {
                                     onClick = { systemCameraLauncher.launch(null) },
                                     colors = ButtonDefaults.buttonColors(containerColor = BluePin),
                                     shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.height(34.dp).weight(1f),
+                                    modifier = Modifier
+                                        .height(34.dp)
+                                        .weight(1f),
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
                                     Text(
@@ -427,7 +471,9 @@ fun OnboardingScreen() {
                                     onClick = { systemGalleryLauncher.launch("image/*") },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
                                     shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.height(34.dp).weight(1f),
+                                    modifier = Modifier
+                                        .height(34.dp)
+                                        .weight(1f),
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
                                     Text(
@@ -443,7 +489,8 @@ fun OnboardingScreen() {
                 }
 
                 OutlinedTextField(
-                    value = contactPhone, onValueChange = { contactPhone = it },
+                    value = formState.contactPhone,
+                    onValueChange = { formState = formState.copy(contactPhone = it) },
                     label = { Text("Primary Contact Phone Number") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -455,7 +502,8 @@ fun OnboardingScreen() {
                 )
 
                 OutlinedTextField(
-                    value = fixedFare, onValueChange = { fixedFare = it },
+                    value = formState.fixedFare,
+                    onValueChange = { formState = formState.copy(fixedFare = it) },
                     label = { Text("Monthly Subscription Fare (₹)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -472,8 +520,8 @@ fun OnboardingScreen() {
                 ) {
                     listOf("SCHOOL", "OFFICE").forEach { type ->
                         FilterChip(
-                            selected = passengerTypeSelection == type,
-                            onClick = { passengerTypeSelection = type },
+                            selected = formState.passengerTypeSelection == type,
+                            onClick = { formState = formState.copy(passengerTypeSelection = type) },
                             label = { Text(type, fontWeight = FontWeight.Bold) },
                             modifier = Modifier.weight(1f)
                         )
@@ -492,17 +540,18 @@ fun OnboardingScreen() {
                 ) {
                     listOf("BOTH", "MORNING", "EVENING").forEach { tier ->
                         FilterChip(
-                            selected = contractSelection == tier,
-                            onClick = { contractSelection = tier },
+                            selected = formState.contractSelection == tier,
+                            onClick = { formState = formState.copy(contractSelection = tier) },
                             label = { Text(tier, fontWeight = FontWeight.Bold) },
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
-                if (contractSelection == "BOTH" || contractSelection == "MORNING") {
+                if (formState.contractSelection == "BOTH" || formState.contractSelection == "MORNING") {
                     OutlinedTextField(
-                        value = morningTimeInput, onValueChange = { morningTimeInput = it },
+                        value = formState.morningTimeInput,
+                        onValueChange = { formState = formState.copy(morningTimeInput = it) },
                         label = { Text("☀️ Morning Pickup Time (e.g., 07:15 AM)") },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = YellowAuto,
@@ -513,9 +562,10 @@ fun OnboardingScreen() {
                     )
                 }
 
-                if (contractSelection == "BOTH" || contractSelection == "EVENING") {
+                if (formState.contractSelection == "BOTH" || formState.contractSelection == "EVENING") {
                     OutlinedTextField(
-                        value = eveningTimeInput, onValueChange = { eveningTimeInput = it },
+                        value = formState.eveningTimeInput,
+                        onValueChange = { formState = formState.copy(eveningTimeInput = it) },
                         label = { Text("🌙 Evening Drop-off Time (e.g., 04:30 PM)") },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = YellowAuto,
@@ -538,16 +588,17 @@ fun OnboardingScreen() {
                 Button(
                     onClick = {
                         readHardwareGpsCoordinates { lat, lng ->
-                            homeLatInput = lat.toString(); homeLngInput =
-                            lng.toString(); Toast.makeText(
-                            context,
-                            "🏠 Home Pin Locked!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                            formState = formState.copy(
+                                homeLatInput = lat.toString(),
+                                homeLngInput = lng.toString()
+                            )
+                            Toast.makeText(context, "🏠 Home Pin Locked!", Toast.LENGTH_SHORT).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = BluePin),
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text("🏠 CAPTURE CURRENT HOME GPS PIN", fontWeight = FontWeight.Bold)
@@ -555,8 +606,8 @@ fun OnboardingScreen() {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = homeLatInput,
-                        onValueChange = { homeLatInput = it },
+                        value = formState.homeLatInput,
+                        onValueChange = { formState = formState.copy(homeLatInput = it) },
                         label = { Text("Home Lat") },
                         modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -565,8 +616,8 @@ fun OnboardingScreen() {
                         )
                     )
                     OutlinedTextField(
-                        value = homeLngInput,
-                        onValueChange = { homeLngInput = it },
+                        value = formState.homeLngInput,
+                        onValueChange = { formState = formState.copy(homeLngInput = it) },
                         label = { Text("Home Lng") },
                         modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -579,16 +630,21 @@ fun OnboardingScreen() {
                 Button(
                     onClick = {
                         readHardwareGpsCoordinates { lat, lng ->
-                            destLatInput = lat.toString(); destLngInput =
-                            lng.toString(); Toast.makeText(
-                            context,
-                            "🏫 Destination Hub Pin Locked!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                            formState = formState.copy(
+                                destLatInput = lat.toString(),
+                                destLngInput = lng.toString()
+                            )
+                            Toast.makeText(
+                                context,
+                                "🏫 Destination Hub Pin Locked!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF6C00)),
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
@@ -600,8 +656,8 @@ fun OnboardingScreen() {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = destLatInput,
-                        onValueChange = { destLatInput = it },
+                        value = formState.destLatInput,
+                        onValueChange = { formState = formState.copy(destLatInput = it) },
                         label = { Text("Dest Lat") },
                         modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -610,8 +666,8 @@ fun OnboardingScreen() {
                         )
                     )
                     OutlinedTextField(
-                        value = destLngInput,
-                        onValueChange = { destLngInput = it },
+                        value = formState.destLngInput,
+                        onValueChange = { formState = formState.copy(destLngInput = it) },
                         label = { Text("Dest Lng") },
                         modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -626,11 +682,16 @@ fun OnboardingScreen() {
                 Button(
                     onClick = { handleProfileSubmission() },
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        "💾 SAVE CUSTOMER PROFILE DATA",
+                        if (editingPassengerId == null)
+                            "💾 SAVE CUSTOMER PROFILE DATA"
+                        else
+                            "✏️ UPDATE CUSTOMER PROFILE",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Black,
                         color = Color.White

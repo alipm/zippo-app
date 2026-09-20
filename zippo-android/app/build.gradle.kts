@@ -10,6 +10,9 @@ android {
     namespace = "com.zippo.app"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         applicationId = "com.zippo.app"
         minSdk = 24
@@ -21,7 +24,20 @@ android {
     }
 
     buildTypes {
+
+        debug {
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"http://10.0.2.2:3000/\""
+            )
+        }
         release {
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"https://zippo-backend.onrender.com/\""
+            )
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

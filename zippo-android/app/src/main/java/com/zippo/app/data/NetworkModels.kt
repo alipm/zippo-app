@@ -1,7 +1,10 @@
 package com.zippo.app.data
 
+import com.google.gson.annotations.SerializedName
+
 // Matches the incoming passenger JSON structure from MongoDB Atlas
 data class PassengerResponse(
+    @SerializedName("_id")
     val id: String? = "",
     val name: String? = "Unknown Candidate",
     val passengerType: String? = "SCHOOL",
@@ -12,7 +15,8 @@ data class PassengerResponse(
     val homeCoordinates: LocationCoordinate? = LocationCoordinate(17.4344, 78.5562),
     val destinationCoordinates: LocationCoordinate? = LocationCoordinate(17.4225, 78.5412),
     val phoneNumber: String? = "9849011223",
-    val address: String? = "Collection Stop Node"
+    val address: String? = "Collection Stop Node",
+    val profileImageBase64: String? = ""
 )
 
 data class LocationCoordinate(

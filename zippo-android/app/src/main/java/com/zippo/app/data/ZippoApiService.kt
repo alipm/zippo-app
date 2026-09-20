@@ -1,5 +1,6 @@
 package com.zippo.app.data
 
+import com.zippo.app.BuildConfig
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -8,6 +9,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 // 🟢 PASSENGER REGISTRATION REQUEST PAYLOAD SKELETON DEFINITION
@@ -71,14 +73,18 @@ interface ZippoApiService {
         @Path("id") passengerId: String
     ): Map<String, Any>
 
+    @PUT("passengers/{id}")
+    suspend fun updatePassengerProfile(
+        @Header("x-driver-id") driverId: String,
+        @Path("id") passengerId: String,
+        @Body request: CreatePassengerRequest
+    ): Map<String, Any>
+
     companion object {
-        // Points to your local machine IP or cloud server gateway link
-        // 10.0.2.2 is the official default internal proxy alias mapping straight to your laptop's localhost inside an Android Emulator
-        private const val BASE_URL = "https://zippo-backend.onrender.com/"
 
         fun create(): ZippoApiService {
             return Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(BuildConfig.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .create(ZippoApiService::class.java)
