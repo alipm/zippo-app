@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEnum, IsNumber, IsObject, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsEnum, IsNumber, IsObject, IsOptional, Length } from 'class-validator';
 
 export class CreatePassengerDto {
   @IsNotEmpty()
@@ -36,4 +36,8 @@ export class CreatePassengerDto {
   @IsOptional()
   @IsString()
   profileImageBase64?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  phoneNumber: string;
 }

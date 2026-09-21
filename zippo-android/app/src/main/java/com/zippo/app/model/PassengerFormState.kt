@@ -7,7 +7,7 @@ data class PassengerFormState(
 
     val passengerName: String = "",
 
-    val contactPhone: String = "",
+    val phoneNumber: String = AppConstants.DEFAULT_PHONE_NUMBER,
 
     val fixedFare: String = AppConstants.DEFAULT_FARE,
 

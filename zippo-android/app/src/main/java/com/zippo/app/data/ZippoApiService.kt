@@ -22,7 +22,8 @@ data class CreatePassengerRequest(
     val eveningPickupTime: String,
     val homeCoordinates: CoordinateNode,
     val destinationCoordinates: CoordinateNode,
-    val profileImageBase64: String? = null
+    val profileImageBase64: String? = null,
+    val phoneNumber: String
 )
 
 data class CoordinateNode(val lat: Double, val lng: Double)

@@ -38,6 +38,9 @@ export class Passenger extends Document {
 
   @Prop({ required: false, default: null })
   profileImageBase64: string;
+
+  @Prop({ required: true })
+  phoneNumber: string;
 }
 
 export const PassengerSchema = SchemaFactory.createForClass(Passenger);

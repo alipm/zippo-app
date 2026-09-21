@@ -22,4 +22,5 @@ object AppConstants {
 
     const val DEFAULT_EVENING_TIME = "04:30 PM"
 
+    const val DEFAULT_PHONE_NUMBER = "9849011223"
 }

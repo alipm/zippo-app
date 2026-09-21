@@ -99,7 +99,7 @@ fun PassengerCard(
                     color = Color.LightGray
                 )
                 Text(
-                    "📍 Sector: ${passenger.address}",
+                    "📍 Time: ${passenger.morningPickupTime}   |   ${passenger.eveningPickupTime}",
                     fontSize = 12.sp,
                     color = YellowAuto
                 )

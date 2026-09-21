@@ -58,7 +58,6 @@ fun OnboardingScreen() {
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    // Screen tracking state containers
     var currentMode by remember { mutableStateOf(ManagementMode.LIST_VIEW) }
     var editingPassengerId by remember { mutableStateOf<String?>(null) }
 
@@ -70,6 +69,8 @@ fun OnboardingScreen() {
 
     var registeredList by remember { mutableStateOf<List<PassengerResponse>>(emptyList()) }
     var isLoaderActive by remember { mutableStateOf(false) }
+
+    var passengerToDelete by remember { mutableStateOf<PassengerResponse?>(null) }
 
     fun resetForm() {
         formState = PassengerFormState()
@@ -91,7 +92,7 @@ fun OnboardingScreen() {
     }
 
     fun handleProfileSubmission() {
-        if (formState.passengerName.isBlank() || formState.contactPhone.isBlank() || formState.fixedFare.isBlank()) {
+        if (formState.passengerName.isBlank() || formState.phoneNumber.isBlank() || formState.fixedFare.isBlank()) {
             Toast.makeText(
                 context,
                 "Please complete all mandatory fields first",
@@ -109,18 +110,24 @@ fun OnboardingScreen() {
                     name = formState.passengerName,
                     passengerType = formState.passengerTypeSelection,
                     contractType = formState.contractSelection,
-                    monthlyFare = formState.fixedFare.toIntOrNull() ?: AppConstants.DEFAULT_FARE.toInt(),
+                    monthlyFare = formState.fixedFare.toIntOrNull()
+                        ?: AppConstants.DEFAULT_FARE.toInt(),
                     morningPickupTime = if (formState.contractSelection != "EVENING") formState.morningTimeInput else "N/A",
                     eveningPickupTime = if (formState.contractSelection != "MORNING") formState.eveningTimeInput else "N/A",
                     homeCoordinates = CoordinateNode(
-                        formState.homeLatInput.toDoubleOrNull() ?: AppConstants.DEFAULT_HOME_LAT.toDouble(),
-                        formState.homeLngInput.toDoubleOrNull() ?: AppConstants.DEFAULT_HOME_LNG.toDouble()
+                        formState.homeLatInput.toDoubleOrNull()
+                            ?: AppConstants.DEFAULT_HOME_LAT.toDouble(),
+                        formState.homeLngInput.toDoubleOrNull()
+                            ?: AppConstants.DEFAULT_HOME_LNG.toDouble()
                     ),
                     destinationCoordinates = CoordinateNode(
-                        formState.destLatInput.toDoubleOrNull() ?: AppConstants.DEFAULT_DEST_LAT.toDouble(),
-                        formState.destLngInput.toDoubleOrNull() ?: AppConstants.DEFAULT_DEST_LNG.toDouble()
+                        formState.destLatInput.toDoubleOrNull()
+                            ?: AppConstants.DEFAULT_DEST_LAT.toDouble(),
+                        formState.destLngInput.toDoubleOrNull()
+                            ?: AppConstants.DEFAULT_DEST_LNG.toDouble()
                     ),
-                    profileImageBase64 = base64ImageString
+                    profileImageBase64 = base64ImageString,
+                    phoneNumber = formState.phoneNumber,
                 )
 
                 if (editingPassengerId == null) {
@@ -300,15 +307,16 @@ fun OnboardingScreen() {
                                             passengerName =
                                             passenger.name ?: "",
 
-                                            contactPhone =
-                                            passenger.phoneNumber ?: "",
+                                            phoneNumber =
+                                            passenger.phoneNumber ?: AppConstants.DEFAULT_PHONE_NUMBER,
 
                                             fixedFare =
                                             passenger.monthlyFare?.toString()
                                                 ?: AppConstants.DEFAULT_FARE,
 
                                             contractSelection =
-                                            passenger.contractType ?: AppConstants.DEFAULT_CONTRACT_TYPE,
+                                            passenger.contractType
+                                                ?: AppConstants.DEFAULT_CONTRACT_TYPE,
 
                                             passengerTypeSelection =
                                             passenger.passengerType ?: AppConstants.DEFAULT_TYPE,
@@ -333,6 +341,7 @@ fun OnboardingScreen() {
                                             ImageUtils.decodeBase64ToBitmap(
                                                 passenger.profileImageBase64
                                             )
+
                                         )
 
                                         currentMode =
@@ -340,9 +349,7 @@ fun OnboardingScreen() {
                                     },
 
                                     onDelete = {
-                                        triggerProfileDelete(
-                                            passenger.id ?: ""
-                                        )
+                                        passengerToDelete = passenger
                                     }
                                 )
                             }
@@ -489,8 +496,8 @@ fun OnboardingScreen() {
                 }
 
                 OutlinedTextField(
-                    value = formState.contactPhone,
-                    onValueChange = { formState = formState.copy(contactPhone = it) },
+                    value = formState.phoneNumber,
+                    onValueChange = { formState = formState.copy(phoneNumber = it) },
                     label = { Text("Primary Contact Phone Number") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -699,5 +706,46 @@ fun OnboardingScreen() {
                 }
             }
         }
+    }
+
+    if (passengerToDelete != null) {
+
+        AlertDialog(
+            onDismissRequest = {
+                passengerToDelete = null
+            },
+
+            title = {
+                Text("Delete Passenger")
+            },
+
+            text = {
+                Text("Are you sure you want to delete this ${passengerToDelete?.name}?")
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        triggerProfileDelete(passengerToDelete?.id ?: "")
+                        passengerToDelete = null
+                    }
+                ) {
+                    Text(
+                        "Delete",
+                        color = Color.Red
+                    )
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        passengerToDelete = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

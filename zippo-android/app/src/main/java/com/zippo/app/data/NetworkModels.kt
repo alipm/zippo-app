@@ -1,22 +1,24 @@
 package com.zippo.app.data
 
 import com.google.gson.annotations.SerializedName
+import com.zippo.app.utils.AppConstants
 
 // Matches the incoming passenger JSON structure from MongoDB Atlas
 data class PassengerResponse(
     @SerializedName("_id")
     val id: String? = "",
     val name: String? = "Unknown Candidate",
-    val passengerType: String? = "SCHOOL",
-    val contractType: String? = "BOTH",
+    val passengerType: String? = AppConstants.DEFAULT_TYPE,
+    val contractType: String? = AppConstants.DEFAULT_CONTRACT_TYPE,
     val monthlyFare: Int? = 1500,
-    val morningPickupTime: String? = "07:30 AM",
-    val eveningPickupTime: String? = "04:30 PM",
-    val homeCoordinates: LocationCoordinate? = LocationCoordinate(17.4344, 78.5562),
-    val destinationCoordinates: LocationCoordinate? = LocationCoordinate(17.4225, 78.5412),
-    val phoneNumber: String? = "9849011223",
+    val morningPickupTime: String? = AppConstants.DEFAULT_MORNING_TIME,
+    val eveningPickupTime: String? = AppConstants.DEFAULT_EVENING_TIME,
+    val homeCoordinates: LocationCoordinate? = LocationCoordinate(AppConstants.DEFAULT_HOME_LAT.toDouble(), AppConstants.DEFAULT_HOME_LNG.toDouble()),
+    val destinationCoordinates: LocationCoordinate? = LocationCoordinate(
+        AppConstants.DEFAULT_DEST_LAT.toDouble(), AppConstants.DEFAULT_DEST_LNG.toDouble()),
+    val phoneNumber: String? = AppConstants.DEFAULT_PHONE_NUMBER,
     val address: String? = "Collection Stop Node",
-    val profileImageBase64: String? = ""
+    val profileImageBase64: String? = "",
 )
 
 data class LocationCoordinate(

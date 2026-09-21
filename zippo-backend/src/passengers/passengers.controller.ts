@@ -51,7 +51,7 @@ export class PassengersController {
     @Headers('x-driver-id') driverId: string,
     @Body() dto: CreatePassengerDto,
   ) {
-
+     console.log('UPDATE DTO =>', dto);
     return this.passengersService.updatePassenger(driverId, passengerId, dto);
   }
 }
