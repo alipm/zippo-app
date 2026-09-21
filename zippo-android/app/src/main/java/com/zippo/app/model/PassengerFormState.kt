@@ -7,25 +7,25 @@ data class PassengerFormState(
 
     val passengerName: String = "",
 
-    val phoneNumber: String = AppConstants.DEFAULT_PHONE_NUMBER,
+    val phoneNumber: String = "",
 
-    val fixedFare: String = AppConstants.DEFAULT_FARE,
+    val fixedFare: String = "",
 
-    val contractSelection: String = AppConstants.DEFAULT_CONTRACT_TYPE,
+    val contractSelection: String = "",
 
-    val passengerTypeSelection: String = AppConstants.DEFAULT_TYPE,
+    val passengerTypeSelection: String = "",
 
-    val morningTimeInput: String = AppConstants.DEFAULT_MORNING_TIME,
+    val morningTimeInput: String = "",
 
-    val eveningTimeInput: String = AppConstants.DEFAULT_EVENING_TIME,
+    val eveningTimeInput: String = "",
 
-    val homeLatInput: String = AppConstants.DEFAULT_HOME_LAT,
+    val homeLatInput: String = "",
 
-    val homeLngInput: String = AppConstants.DEFAULT_HOME_LNG,
+    val homeLngInput: String = "",
 
-    val destLatInput: String = AppConstants.DEFAULT_DEST_LAT,
+    val destLatInput: String = "",
 
-    val destLngInput: String = AppConstants.DEFAULT_DEST_LNG,
+    val destLngInput: String = "",
 
     val capturedPhotoPreview: Bitmap? = null
 )

@@ -10,7 +10,7 @@ export class CreatePassengerDto {
   passengerType: string;
 
   @IsNotEmpty()
-  @IsEnum(['BOTH', 'MORNING_ONLY', 'EVENING_ONLY'])
+  @IsEnum(['BOTH', 'MORNING', 'EVENING'])
   contractType: string;
 
   @IsNotEmpty()

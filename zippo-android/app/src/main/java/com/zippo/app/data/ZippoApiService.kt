@@ -1,6 +1,8 @@
 package com.zippo.app.data
 
+import RenderColdStartInterceptor
 import com.zippo.app.BuildConfig
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -11,12 +13,13 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import java.util.concurrent.TimeUnit
 
 // 🟢 PASSENGER REGISTRATION REQUEST PAYLOAD SKELETON DEFINITION
 data class CreatePassengerRequest(
     val name: String,
     val passengerType: String, // "SCHOOL" or "OFFICE"
-    val contractType: String,  // "BOTH", "MORNING_ONLY", "EVENING_ONLY"
+    val contractType: String,  // "BOTH", "MORNING", "EVENING"
     val monthlyFare: Int,
     val morningPickupTime: String,
     val eveningPickupTime: String,
@@ -84,8 +87,17 @@ interface ZippoApiService {
     companion object {
 
         fun create(): ZippoApiService {
+            // 1. Build an OkHttpClient containing our cold-start countdown interceptor
+            val okHttpClient = OkHttpClient.Builder()
+                .connectTimeout(60, TimeUnit.SECONDS) // Keeps socket open long enough for Render to boot
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .addInterceptor(RenderColdStartInterceptor()) // <-- Intercepts and monitors live request latencies
+                .build()
+
             return Retrofit.Builder()
                 .baseUrl(BuildConfig.BASE_URL)
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .create(ZippoApiService::class.java)

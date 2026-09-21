@@ -13,7 +13,7 @@ export class TripsService {
 
   async generateClusteredTrips(driverId: string, dto: BuildRosterDto) {
     const { date, shift, customTripSizes } = dto;
-    const shiftFilter = shift === 'MORNING' ? 'MORNING_ONLY' : 'EVENING_ONLY';
+    const shiftFilter = shift === 'MORNING' ? 'MORNING' : 'EVENING';
 
     // 🟢 FIXED: The system now reads the dynamic driver parameter explicitly passed into the controller method context 
     // instead of defaulting to a static fallback string tracker profile.
@@ -191,7 +191,7 @@ export class TripsService {
         driverId,
         name: 'Vijay (Tech Park)',
         passengerType: 'OFFICE',
-        contractType: 'MORNING_ONLY',
+        contractType: 'MORNING',
         monthlyFare: 2000,
         morningPickupTime: '07:35 AM',
         eveningPickupTime: '06:00 PM',
@@ -215,7 +215,7 @@ export class TripsService {
         driverId,
         name: 'Naresh Goud',
         passengerType: 'SCHOOL',
-        contractType: 'EVENING_ONLY',
+        contractType: 'EVENING',
         monthlyFare: 1200,
         morningPickupTime: '08:00 AM',
         eveningPickupTime: '04:15 PM',

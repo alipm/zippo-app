@@ -15,7 +15,7 @@ export class Passenger extends Document {
   @Prop({ required: true, enum: ['SCHOOL', 'OFFICE'] })
   passengerType: string;
 
-  @Prop({ required: true, enum: ['BOTH', 'MORNING_ONLY', 'EVENING_ONLY'], default: 'BOTH' })
+  @Prop({ required: true, enum: ['BOTH', 'MORNING', 'EVENING'], default: 'BOTH' })
   contractType: string; // Toggles whether they appear in morning, evening, or both rosters
 
   @Prop({ required: true })

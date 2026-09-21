@@ -56,7 +56,7 @@ This document serves as the absolute master engineering blueprint, systemic memo
 * **The Delay Absorption Rule:** The application bypasses rigid clock-time checks for proximity messaging. Any upstream timeline delay—including late driver departures or prolonged passenger loading times—is completely absorbed by the routing engine. Automated text updates are strictly suppressed until the physical vehicle explicitly crosses the 1,000-meter geofence perimeter of the immediate next destination node.
 
 ### H. Multi-Tier Contract Type Boundaries & Direct Dialing Intents
-* **Flexible Contract Types:** Passenger parameters explicitly feature a `contractType` parameter (`BOTH`, `MORNING_ONLY`, `EVENING_ONLY`). The shift roster aggregation script evaluates this variable to filter items cleanly out of active shift timelines, preventing empty pickup routes and ensuring accurate ledger allocations for partial riders.
+* **Flexible Contract Types:** Passenger parameters explicitly feature a `contractType` parameter (`BOTH`, `MORNING`, `EVENING`). The shift roster aggregation script evaluates this variable to filter items cleanly out of active shift timelines, preventing empty pickup routes and ensuring accurate ledger allocations for partial riders.
 * **One-Click Native Dialer Links:** UI dashboard profiles map a prominent action button bound to an explicit native Android layout `Intent(Intent.ACTION_DIAL)`. This enables immediate one-touch voice calling loops out to parents or employees without requiring manual entry navigation.
 
 ### I. Granular Targeted Holiday Scoping Matrix
