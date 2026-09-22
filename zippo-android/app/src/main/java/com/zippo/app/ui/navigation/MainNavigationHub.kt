@@ -97,33 +97,42 @@ fun MainNavigationHub() {
             visible = isServerWakingUp,
             enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter)
+            modifier = Modifier.fillMaxSize()
         ) {
-            Surface(
-                color = SurfaceGray, // Styled to match your high-contrast theme
-                modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 8.dp
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f)) // Optional dark tint (dim background effect)
+                    .clickable(
+                        enabled = true,
+                        onClick = { /* 🟢 INTENTIONALLY BLANK: Consumes touches so user cannot click elements underneath! */ })
             ) {
-                Row(
-                    modifier = Modifier
-                        .statusBarsPadding() // Safely shifts content beneath the Android status bar icons
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    color = SurfaceGray, // Styled to match your high-contrast theme
+                    modifier = Modifier.fillMaxWidth(),
+                    tonalElevation = 8.dp
                 ) {
-                    CircularProgressIndicator(
-                        color = YellowAuto,
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Waking up servers... May take 30-60s on free tier",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        textAlign = TextAlign.Center
-                    )
+                    Row(
+                        modifier = Modifier
+                            .statusBarsPadding() // Safely shifts content beneath the Android status bar icons
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            color = YellowAuto,
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Connecting to server... It may take 30-60 seconds",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }

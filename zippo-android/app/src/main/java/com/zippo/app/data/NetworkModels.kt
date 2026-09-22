@@ -19,6 +19,7 @@ data class PassengerResponse(
     val phoneNumber: String? = AppConstants.DEFAULT_PHONE_NUMBER,
     val address: String? = "Collection Stop Node",
     val profileImageBase64: String? = "",
+    val remarks: String? = ""
 )
 
 data class LocationCoordinate(

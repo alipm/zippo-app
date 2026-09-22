@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,8 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,14 +37,14 @@ import com.zippo.app.ui.theme.YellowAuto
 fun PassengerCard(
     passenger: PassengerResponse,
     passengerBitmap: Bitmap?,
-    onClick: () -> Unit,
+    onView: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SurfaceGray),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
@@ -103,9 +102,17 @@ fun PassengerCard(
                     fontSize = 12.sp,
                     color = YellowAuto
                 )
-            }
-            IconButton(onClick = onDelete) {
-                Text("🗑️", fontSize = 20.sp)
+                Row {
+                    TextButton(onClick = onView) {
+                        Text("👁 View")
+                    }
+                    TextButton(onClick = onEdit) {
+                        Text("✏ Edit")
+                    }
+                    TextButton(onClick = onDelete) {
+                        Text("🗑 Delete")
+                    }
+                }
             }
         }
     }

@@ -41,6 +41,12 @@ export class Passenger extends Document {
 
   @Prop({ required: true })
   phoneNumber: string;
+
+  @Prop({ required: false, default: null })
+  remarks: string;
+
+  @Prop({ default: false })
+  paymentSettled: boolean;
 }
 
 export const PassengerSchema = SchemaFactory.createForClass(Passenger);

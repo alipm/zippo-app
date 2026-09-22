@@ -40,4 +40,8 @@ export class CreatePassengerDto {
   @IsNotEmpty()
   @IsString()
   phoneNumber: string;
+
+  @IsOptional()
+  @IsString()
+  remarks?: string;
 }

@@ -11,9 +11,9 @@ data class PassengerFormState(
 
     val fixedFare: String = "",
 
-    val contractSelection: String = "",
+    val contractSelection: String = "BOTH",
 
-    val passengerTypeSelection: String = "",
+    val passengerTypeSelection: String = "SCHOOL",
 
     val morningTimeInput: String = "",
 
@@ -27,5 +27,7 @@ data class PassengerFormState(
 
     val destLngInput: String = "",
 
-    val capturedPhotoPreview: Bitmap? = null
+    val capturedPhotoPreview: Bitmap? = null,
+
+    val remarks: String = ""
 )

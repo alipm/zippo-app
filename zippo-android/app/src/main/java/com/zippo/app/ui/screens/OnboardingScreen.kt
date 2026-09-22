@@ -1,5 +1,6 @@
 package com.zippo.app.ui.screens
 
+import DetailRow
 import android.annotation.SuppressLint
 import android.app.TimePickerDialog
 import android.content.Context
@@ -13,11 +14,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +28,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -48,7 +52,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 // State navigation mode tracks within the setup window space
-enum class ManagementMode { LIST_VIEW, ENTRY_FORM }
+enum class ManagementMode { LIST_VIEW, VIEW_DETAILS, ENTRY_FORM }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +69,7 @@ fun OnboardingScreen() {
     var registeredList by remember { mutableStateOf<List<PassengerResponse>>(emptyList()) }
     var isLoaderActive by remember { mutableStateOf(false) }
     var passengerToDelete by remember { mutableStateOf<PassengerResponse?>(null) }
+    var selectedPassenger by remember { mutableStateOf<PassengerResponse?>(null) }
 
     fun resetForm() {
         formState = PassengerFormState()
@@ -155,6 +160,7 @@ fun OnboardingScreen() {
                     ),
                     profileImageBase64 = base64ImageString,
                     phoneNumber = formState.phoneNumber,
+                    remarks = formState.remarks
                 )
 
                 if (editingPassengerId == null) {
@@ -326,32 +332,36 @@ fun OnboardingScreen() {
 
                                 PassengerCard(passenger = passenger,
                                     passengerBitmap = passengerBitmap,
-
-                                    onClick = {
-
+                                    onView = {
+                                        selectedPassenger = passenger
+                                        currentMode = ManagementMode.VIEW_DETAILS
+                                    },
+                                    onEdit = {
                                         editingPassengerId = passenger.id
                                         formState = formState.copy(
-
                                             passengerName = passenger.name ?: "",
                                             phoneNumber = passenger.phoneNumber
                                                 ?: AppConstants.DEFAULT_PHONE_NUMBER,
                                             fixedFare = passenger.monthlyFare?.toString()
                                                 ?: AppConstants.DEFAULT_FARE,
                                             contractSelection = passenger.contractType
-                                                ?: AppConstants.DEFAULT_CONTRACT_TYPE,
+                                                ?: "BOTH",
                                             passengerTypeSelection = passenger.passengerType
-                                                ?: AppConstants.DEFAULT_TYPE,
+                                                ?: "SCHOOL",
                                             homeLatInput = passenger.homeCoordinates?.lat?.toString()
-                                                ?: AppConstants.DEFAULT_HOME_LAT,
+                                                ?: "",
                                             homeLngInput = passenger.homeCoordinates?.lng?.toString()
-                                                ?: AppConstants.DEFAULT_HOME_LNG,
+                                                ?: "",
                                             destLatInput = passenger.destinationCoordinates?.lat?.toString()
-                                                ?: AppConstants.DEFAULT_DEST_LAT,
+                                                ?: "",
                                             destLngInput = passenger.destinationCoordinates?.lng?.toString()
-                                                ?: AppConstants.DEFAULT_DEST_LNG,
+                                                ?: "",
+                                            morningTimeInput = passenger.morningPickupTime ?: "",
+                                            eveningTimeInput = passenger.eveningPickupTime ?: "",
                                             capturedPhotoPreview = ImageUtils.decodeBase64ToBitmap(
                                                 passenger.profileImageBase64
-                                            )
+                                            ),
+                                            remarks = passenger.remarks ?: ""
                                         )
                                         currentMode = ManagementMode.ENTRY_FORM
                                     },
@@ -381,6 +391,283 @@ fun OnboardingScreen() {
             }
         }
 
+        ManagementMode.VIEW_DETAILS -> {
+
+            val passengerBitmap =
+                ImageUtils.decodeBase64ToBitmap(
+                    selectedPassenger?.profileImageBase64
+                )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkChassis)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                // =========================================================
+                // HEADER PROFILE CARD
+                // =========================================================
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        if (passengerBitmap != null) {
+
+                            Image(
+                                bitmap = passengerBitmap.asImageBitmap(),
+                                contentDescription = "Passenger Photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(110.dp)
+                                    .clip(CircleShape)
+                                    .border(
+                                        width = 3.dp,
+                                        color = YellowAuto,
+                                        shape = CircleShape
+                                    )
+                            )
+
+                        } else {
+
+                            Box(
+                                modifier = Modifier
+                                    .size(110.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.DarkGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+
+                                Text(
+                                    "👤",
+                                    fontSize = 40.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = selectedPassenger?.name ?: "Passenger",
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = selectedPassenger?.passengerType ?: "-",
+                            color = YellowAuto,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                // =========================================================
+                // CONTACT INFO
+                // =========================================================
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+
+                        Text(
+                            "📞 Contact Information",
+                            color = YellowAuto,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        DetailRow(
+                            "Phone Number",
+                            selectedPassenger?.phoneNumber ?: "-"
+                        )
+                    }
+                }
+
+                // =========================================================
+                // TRANSPORT DETAILS
+                // =========================================================
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+
+                        Text(
+                            "🚌 Transport Details",
+                            color = YellowAuto,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        DetailRow(
+                            "Monthly Fare",
+                            "₹${selectedPassenger?.monthlyFare ?: 0}"
+                        )
+
+                        DetailRow(
+                            "Contract Type",
+                            selectedPassenger?.contractType ?: "-"
+                        )
+
+                        DetailRow(
+                            "Pickup Time",
+                            selectedPassenger?.morningPickupTime ?: "-"
+                        )
+
+                        DetailRow(
+                            "Drop Time",
+                            selectedPassenger?.eveningPickupTime ?: "-"
+                        )
+                    }
+                }
+
+                // =========================================================
+                // LOCATION STATUS
+                // =========================================================
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+
+                        Text(
+                            "📍 Location Status",
+                            color = YellowAuto,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = if (
+                                selectedPassenger?.homeCoordinates != null
+                            ) {
+                                "✅ Pickup Location Saved"
+                            } else {
+                                "❌ Pickup Location Not Saved"
+                            },
+                            color = Color.White
+                        )
+
+                        Text(
+                            text = if (
+                                selectedPassenger?.destinationCoordinates != null
+                            ) {
+                                "✅ Drop Location Saved"
+                            } else {
+                                "❌ Drop Location Not Saved"
+                            },
+                            color = Color.White
+                        )
+                    }
+                }
+
+                // =========================================================
+                // NOTES
+                // =========================================================
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+
+                        Text(
+                            "📝 Additional Notes",
+                            color = YellowAuto,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(12.dp)
+                        )
+
+                        Text(
+                            text =
+                            selectedPassenger?.remarks
+                                ?.takeIf { it.isNotBlank() }
+                                ?: "No additional notes available.",
+                            color = Color.White,
+                            lineHeight = 22.sp
+                        )
+                    }
+                }
+
+                // =========================================================
+                // BACK BUTTON
+                // =========================================================
+
+                Button(
+                    onClick = {
+                        currentMode = ManagementMode.LIST_VIEW
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BluePin
+                    )
+                ) {
+
+                    Text(
+                        "⬅ Back to Passenger List",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+            }
+        }
+
         ManagementMode.ENTRY_FORM -> {
             Column(
                 modifier = Modifier
@@ -407,7 +694,8 @@ fun OnboardingScreen() {
                         modifier = Modifier.clickable { currentMode = ManagementMode.LIST_VIEW })
                 }
 
-                OutlinedTextField(value = formState.passengerName,
+                OutlinedTextField(
+                    value = formState.passengerName,
                     onValueChange = {
                         if (it.all { char -> char.isLetter() || char.isWhitespace() }) {
                             formState = formState.copy(passengerName = it)
@@ -499,7 +787,8 @@ fun OnboardingScreen() {
                     }
                 }
 
-                OutlinedTextField(value = formState.phoneNumber,
+                OutlinedTextField(
+                    value = formState.phoneNumber,
                     onValueChange = {
                         if (it.length <= 10 && it.all(Char::isDigit)) {
                             formState = formState.copy(phoneNumber = it)
@@ -515,7 +804,8 @@ fun OnboardingScreen() {
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(value = formState.fixedFare,
+                OutlinedTextField(
+                    value = formState.fixedFare,
                     onValueChange = {
                         if (it.all(Char::isDigit)) {
                             formState = formState.copy(fixedFare = it)
@@ -531,6 +821,29 @@ fun OnboardingScreen() {
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                OutlinedTextField(
+                    value = formState.remarks,
+                    onValueChange = {
+                        if (it.length <= 250) {
+                            formState = formState.copy(
+                                remarks = it
+                            )
+                        }
+                    },
+                    label = {
+                        Text("Additional Notes")
+                    },
+                    placeholder = {
+                        Text("School, class, pickup notes...")
+                    },
+                    minLines = 3,
+                    maxLines = 5,
+                    supportingText = {
+                        Text("${formState.remarks.length}/250")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -540,7 +853,11 @@ fun OnboardingScreen() {
                             selected = formState.passengerTypeSelection == type,
                             onClick = { formState = formState.copy(passengerTypeSelection = type) },
                             label = { Text(type, fontWeight = FontWeight.Bold) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = YellowAuto,
+                                selectedLabelColor = Color.Black
+                            )
                         )
                     }
                 }
@@ -560,7 +877,11 @@ fun OnboardingScreen() {
                             selected = formState.contractSelection == tier,
                             onClick = { formState = formState.copy(contractSelection = tier) },
                             label = { Text(tier, fontWeight = FontWeight.Bold) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = YellowAuto,
+                                selectedLabelColor = Color.Black
+                            )
                         )
                     }
                 }
