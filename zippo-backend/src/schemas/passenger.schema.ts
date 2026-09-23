@@ -45,6 +45,9 @@ export class Passenger extends Document {
   @Prop({ required: false, default: null })
   remarks: string;
 
+  @Prop({ default: Date.now })
+  joinedAt: Date;
+
   @Prop({ default: false })
   paymentSettled: boolean;
 }

@@ -25,8 +25,8 @@ import com.zippo.app.data.UpdatePaymentStatusRequest
 import com.zippo.app.data.VoiceKhataRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.*
-import kotlinx.coroutines.launch
 import com.zippo.app.utils.AppConstants
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -322,7 +322,7 @@ fun LedgerScreen() {
                                     Button(
                                         onClick = {
                                             val reminderMessage =
-                                                "Zippo Notice: Monthly subscription transport fare balance of ₹${invoice.fareAmount} is outstanding for ${invoice.householdName}. Kindly clear via your banking app."
+                                                "Reminder: ₹${invoice.fareAmount} transport fee for ${invoice.householdName} is pending. Kindly clear the dues at your earliest convenience. Thank you. - Zippo"
                                             sendFreeWhatsAppIntent(
                                                 context,
                                                 invoice.parentPhoneNumber,

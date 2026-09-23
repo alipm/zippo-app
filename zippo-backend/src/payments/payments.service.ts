@@ -4,9 +4,17 @@ import { Model } from 'mongoose';
 
 @Injectable()
 export class PaymentsService {
-  constructor(@InjectModel('Passenger') private passengerModel: Model<any>) {}
+  constructor(
+    @InjectModel('Passenger')
+    private passengerModel: Model<any>,
+
+    @InjectModel('Invoice')
+    private invoiceModel: Model<any>,
+  ) {}
 
   async getMonthlyLedgerSummary(driverId: string) {
+
+    await this.generateMonthlyInvoices(driverId);
     // Extract all live subscriber assets matching the driver's profile context
     const passengers = await this.passengerModel.find({
       driverId,
@@ -33,7 +41,7 @@ export class PaymentsService {
         description: `${passenger.passengerType || 'SCHOOL'} Route Contract - ${passenger.contractType || 'BOTH'}`,
         fareAmount: fare,
         isSettled: isPassengerSettled,
-        parentPhoneNumber: '9849011223', // Fallback communication anchor
+        parentPhoneNumber: passenger.phoneNumber || '', // Fallback communication anchor
       };
     });
 
@@ -77,5 +85,34 @@ export class PaymentsService {
       success: true,
       message: `Payment received via ${paymentType}`,
     };
+  }
+
+  async generateMonthlyInvoices(driverId: string) {
+   const currentMonth = new Date().toISOString().slice(0, 7);
+
+   const invoices = await this.invoiceModel.find({
+      driverId,
+      billingMonth: currentMonth
+   });
+
+    for (const passenger of invoices) {
+      const existingInvoice = await this.invoiceModel.findOne({
+        passengerId: passenger._id.toString(),
+        billingMonth: currentMonth,
+      });
+
+      if (existingInvoice) {
+        continue;
+      }
+
+      await this.invoiceModel.create({
+        passengerId: passenger._id.toString(),
+        driverId,
+        passengerName: passenger.name,
+        billingMonth: currentMonth,
+        amount: passenger.monthlyFare,
+        isSettled: false,
+      });
+    }
   }
 }
