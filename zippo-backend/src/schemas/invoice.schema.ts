@@ -26,6 +26,12 @@ export class Invoice extends Document {
 
   @Prop()
   paymentDate?: Date;
+
+  @Prop()
+  parentPhoneNumber: string;
+
+  @Prop()
+  profileImageBase64: string;
 }
 
 export const InvoiceSchema = SchemaFactory.createForClass(Invoice);

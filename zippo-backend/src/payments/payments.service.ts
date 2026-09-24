@@ -12,46 +12,51 @@ export class PaymentsService {
     private invoiceModel: Model<any>,
   ) {}
 
-  async getMonthlyLedgerSummary(driverId: string) {
-
+  async getMonthlyLedgerSummary(driverId: string, month?: string) {
     await this.generateMonthlyInvoices(driverId);
-    // Extract all live subscriber assets matching the driver's profile context
-    const passengers = await this.passengerModel.find({
+
+    const billingMonth = month || new Date().toISOString().slice(0, 7);
+
+    const invoices = await this.invoiceModel.find({
       driverId,
-      isActive: true,
+      billingMonth: billingMonth,
     });
 
     let totalCollected = 0;
     let pendingDues = 0;
 
-    // Run dynamic aggregation pipelines natively across the documents array
-    const invoices = passengers.map((passenger) => {
-      const isPassengerSettled = passenger.paymentSettled ?? false;
-      const fare = passenger.monthlyFare || 1500;
+    let paidCount = 0;
+    let dueCount = 0;
 
-      if (isPassengerSettled) {
-        totalCollected += fare;
+    const invoiceResponses = invoices.map((invoice) => {
+      if (invoice.isSettled) {
+        totalCollected += invoice.amount;
+        paidCount++;
       } else {
-        pendingDues += fare;
+        pendingDues += invoice.amount;
+        dueCount++;
       }
 
       return {
-        id: passenger._id.toString(),
-        householdName: passenger.name || 'Subscriber Passenger Profile',
-        description: `${passenger.passengerType || 'SCHOOL'} Route Contract - ${passenger.contractType || 'BOTH'}`,
-        fareAmount: fare,
-        isSettled: isPassengerSettled,
-        parentPhoneNumber: passenger.phoneNumber || '', // Fallback communication anchor
+        id: invoice._id.toString(),
+        householdName: invoice.passengerName,
+        description: `Monthly Transport Fee (${invoice.billingMonth})`,
+        fareAmount: invoice.amount,
+        isSettled: invoice.isSettled,
+        parentPhoneNumber: invoice.parentPhoneNumber,
+        profileImageBase64: invoice.profileImageBase64,
+        paymentDate: invoice.paymentDate,
       };
     });
 
     return {
       success: true,
-      message:
-        'Financial collections summary compiled cleanly from cloud collections.',
+      message: 'Monthly Ledger Loaded',
       totalCollected,
       pendingDues,
-      invoices,
+      paidCount,
+      dueCount,
+      invoices: invoiceResponses,
     };
   }
 
@@ -60,23 +65,24 @@ export class PaymentsService {
     invoiceId: string,
     paymentType: string,
   ) {
-    const targetPassenger = await this.passengerModel.findOne({
+    const targetInvoice = await this.invoiceModel.findOne({
       _id: invoiceId,
       driverId,
     });
 
-    if (!targetPassenger) {
-      throw new NotFoundException('Passenger not found');
+    if (!targetInvoice) {
+      throw new NotFoundException('Invoice not found');
     }
 
-    await this.passengerModel.updateOne(
+    await this.invoiceModel.updateOne(
       {
         _id: invoiceId,
-        driverId,
       },
       {
         $set: {
-          paymentSettled: true,
+          isSettled: true,
+          paymentMethod: paymentType,
+          paymentDate: new Date(),
         },
       },
     );
@@ -88,14 +94,14 @@ export class PaymentsService {
   }
 
   async generateMonthlyInvoices(driverId: string) {
-   const currentMonth = new Date().toISOString().slice(0, 7);
+    const currentMonth = new Date().toISOString().slice(0, 7);
 
-   const invoices = await this.invoiceModel.find({
+    const passengers = await this.passengerModel.find({
       driverId,
-      billingMonth: currentMonth
-   });
+      isActive: true,
+    });
 
-    for (const passenger of invoices) {
+    for (const passenger of passengers) {
       const existingInvoice = await this.invoiceModel.findOne({
         passengerId: passenger._id.toString(),
         billingMonth: currentMonth,
@@ -112,7 +118,17 @@ export class PaymentsService {
         billingMonth: currentMonth,
         amount: passenger.monthlyFare,
         isSettled: false,
+        parentPhoneNumber: passenger.phoneNumber,
+        profileImageBase64: passenger.profileImageBase64,
       });
     }
+  }
+
+  async getAvailableMonths(driverId: string) {
+    const months = await this.invoiceModel.distinct('billingMonth', {
+      driverId,
+    });
+
+    return months.sort().reverse();
   }
 }

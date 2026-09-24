@@ -27,6 +27,16 @@ import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.*
 import com.zippo.app.utils.AppConstants
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import com.zippo.app.utils.Utils
+import com.zippo.app.utils.Utils.formatMonth
+import com.zippo.app.utils.Utils.formatPaymentDate
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,17 +50,30 @@ fun LedgerScreen() {
     var totalCollected by remember { mutableStateOf(0) }
     var pendingDues by remember { mutableStateOf(0) }
     var invoiceList by remember { mutableStateOf<List<LedgerInvoiceResponse>>(emptyList()) }
+    var paidCount by remember { mutableStateOf(0) }
+    var dueCount by remember { mutableStateOf(0) }
+    val currentCalendar = Calendar.getInstance()
+    val currentMonth = String.format(
+        "%04d-%02d",
+        currentCalendar.get(Calendar.YEAR),
+        currentCalendar.get(Calendar.MONTH) + 1
+    )
+    var selectedMonth by remember { mutableStateOf(currentMonth) }
+    var months by remember { mutableStateOf(listOf<String>()) }
+    var monthDropdownExpanded by remember { mutableStateOf(false) }
 
     // 🟢 ADD: Cloud synchronizer function
     fun syncFinancialLedgerFromCloud() {
         coroutineScope.launch {
             isLoading = true
             try {
-                val response = apiService.fetchFinancialLedger(uniqueDeviceDriverId)
+                val response = apiService.fetchFinancialLedger(uniqueDeviceDriverId, selectedMonth)
                 if (response.success) {
                     totalCollected = response.totalCollected
                     pendingDues = response.pendingDues
                     invoiceList = response.invoices
+                    paidCount = response.paidCount
+                    dueCount = response.dueCount
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Khata Sync Failed: ${e.message}", Toast.LENGTH_SHORT)
@@ -150,7 +173,20 @@ fun LedgerScreen() {
 
     // 🟢 ADD: Lifecycle interceptor to trigger loading on screen mount
     LaunchedEffect(Unit) {
-        syncFinancialLedgerFromCloud()
+        coroutineScope.launch {
+            try {
+                months =
+                    apiService.fetchAvailableMonths(
+                        uniqueDeviceDriverId
+                    )
+                if (months.isNotEmpty()) {
+                    selectedMonth = months.first()
+                }
+                syncFinancialLedgerFromCloud()
+            } catch (e: Exception) {
+                Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     Scaffold(
@@ -194,9 +230,52 @@ fun LedgerScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            ExposedDropdownMenuBox(
+                expanded = monthDropdownExpanded,
+                onExpandedChange = {
+                    monthDropdownExpanded =
+                        !monthDropdownExpanded
+                }
+            ) {
+                OutlinedTextField(
+                    value = formatMonth(selectedMonth),
+                    onValueChange = {},
+                    readOnly = true,
+                    singleLine = true,
+                    label = {
+                        Text("Ledger Month")
+                    },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = monthDropdownExpanded,
+                    onDismissRequest = {
+                        monthDropdownExpanded = false
+                    }
+                ) {
+                    months.forEach { month ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(formatMonth(month))
+                            },
+                            onClick = {
+                                selectedMonth = month
+                                monthDropdownExpanded = false
+                                syncFinancialLedgerFromCloud()
+                            }
+                        )
+                    }
+                }
+            }
             Card(
                 colors = CardDefaults.cardColors(containerColor = SurfaceGray),
                 shape = RoundedCornerShape(16.dp),
@@ -204,7 +283,7 @@ fun LedgerScreen() {
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(16.dp)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -217,7 +296,7 @@ fun LedgerScreen() {
                         )
                         Text(
                             "₹$totalCollected",
-                            fontSize = 24.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Black,
                             color = SuccessGreen
                         )
@@ -231,20 +310,86 @@ fun LedgerScreen() {
                         )
                         Text(
                             "₹$pendingDues",
-                            fontSize = 24.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Black,
                             color = AlertRed
                         )
                     }
                 }
-            }
 
+                Divider(
+                    color = Color.Gray.copy(alpha = 0.3f)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(
+                            containerColor = SuccessGreen.copy(alpha = 0.15f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp)
+                        ) {
+                            Text(
+                                "PAID",
+                                fontSize = 11.sp,
+                                color = Color.LightGray
+                            )
+                            Text(
+                                "✅ $paidCount",
+                                color = SuccessGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                        }
+                    }
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(
+                            containerColor = AlertRed.copy(alpha = 0.15f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp)
+                        ) {
+                            Text(
+                                "PENDING",
+                                fontSize = 11.sp,
+                                color = Color.LightGray
+                            )
+                            Text(
+                                "🔴 $dueCount",
+                                color = AlertRed,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                        }
+                    }
+                }
+            }
             Text(
-                "SUBSCRIPTION INVOICING RECORDS:",
+                "Passenger:",
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold
             )
+            if (invoiceList.isEmpty()) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+                    Text(
+                        text = "No invoices found for ${formatMonth(selectedMonth)}",
+                        modifier = Modifier.padding(16.dp),
+                        color = Color.White
+                    )
+                }
+                return@Column
+            }
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -257,51 +402,121 @@ fun LedgerScreen() {
                         colors = CardDefaults.cardColors(containerColor = SurfaceGray),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Top
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        invoice.householdName,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextMain
-                                    )
-                                    Text(
-                                        invoice.description,
-                                        fontSize = 13.sp,
-                                        color = Color.LightGray
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        "Fare Target: ₹${invoice.fareAmount}",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = YellowAuto
-                                    )
-                                }
-                                Surface(
-                                    color = if (invoice.isSettled) SuccessGreen.copy(alpha = 0.2f) else AlertRed.copy(
-                                        alpha = 0.2f
-                                    ),
-                                    shape = RoundedCornerShape(6.dp)
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = if (invoice.isSettled) "🟢 PAID" else "🔴 DUE",
-                                        color = if (invoice.isSettled) SuccessGreen else AlertRed,
-                                        modifier = Modifier.padding(
-                                            horizontal = 8.dp,
-                                            vertical = 4.dp
-                                        ),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
+                                    val passengerBitmap =
+                                        Utils.decodeBase64ToBitmap(
+                                            invoice.profileImageBase64
+                                        )
+                                    if (passengerBitmap != null) {
+                                        Image(
+                                            bitmap = passengerBitmap.asImageBitmap(),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(54.dp)
+                                                .clip(CircleShape)
+                                                .border(
+                                                    2.dp,
+                                                    YellowAuto,
+                                                    CircleShape
+                                                )
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(54.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.DarkGray),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "👤",
+                                                fontSize = 24.sp
+                                            )
+                                        }
+                                    }
+                                    Spacer(
+                                        modifier = Modifier.width(12.dp)
                                     )
+                                    Column {
+                                        Text(
+                                            text = invoice.householdName,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextMain
+                                        )
+                                        Text(
+                                            text = invoice.description,
+                                            fontSize = 11.sp,
+                                            color = Color.LightGray
+                                        )
+                                        Spacer(
+                                            modifier = Modifier.height(4.dp)
+                                        )
+                                        Text(
+                                            text = "₹${invoice.fareAmount}",
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = YellowAuto
+                                        )
+                                    }
+                                }
+                                Column(
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    Surface(
+                                        color =
+                                        if (invoice.isSettled)
+                                            SuccessGreen.copy(alpha = 0.15f)
+                                        else
+                                            AlertRed.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(50)
+                                    ) {
+                                        Text(
+                                            text =
+                                            if (invoice.isSettled)
+                                                "PAID"
+                                            else
+                                                "DUE",
+                                            color =
+                                            if (invoice.isSettled)
+                                                SuccessGreen
+                                            else
+                                                AlertRed,
+                                            modifier = Modifier.padding(
+                                                horizontal = 10.dp,
+                                                vertical = 6.dp
+                                            ),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    if (
+                                        invoice.isSettled &&
+                                        invoice.paymentDate != null
+                                    ) {
+                                        Spacer(
+                                            modifier = Modifier.height(4.dp)
+                                        )
+                                        Text(
+                                            text = formatPaymentDate(
+                                                invoice.paymentDate
+                                            ),
+                                            color = Color.LightGray,
+                                            fontSize = 10.sp
+                                        )
+                                    }
                                 }
                             }
-
                             if (!invoice.isSettled) {
                                 Spacer(modifier = Modifier.height(14.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -311,11 +526,11 @@ fun LedgerScreen() {
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier
                                             .weight(1.4f)
-                                            .height(48.dp)
+                                            .height(42.dp)
                                     ) {
                                         Text(
                                             "💵 MARK CASH",
-                                            fontSize = 13.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -333,11 +548,11 @@ fun LedgerScreen() {
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(48.dp)
+                                            .height(42.dp)
                                     ) {
                                         Text(
                                             "📱 REMIND UPI",
-                                            fontSize = 13.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White
                                         )

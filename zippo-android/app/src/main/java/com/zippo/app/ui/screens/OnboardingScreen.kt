@@ -47,7 +47,7 @@ import com.zippo.app.model.PassengerFormState
 import com.zippo.app.ui.onboarding.components.PassengerCard
 import com.zippo.app.ui.theme.*
 import com.zippo.app.utils.AppConstants
-import com.zippo.app.utils.ImageUtils
+import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -134,7 +134,7 @@ fun OnboardingScreen() {
 //                return showValidation("Please capture destination location")
         }
 
-        val base64ImageString = ImageUtils.convertBitmapToBase64(formState.capturedPhotoPreview)
+        val base64ImageString = Utils.convertBitmapToBase64(formState.capturedPhotoPreview)
         coroutineScope.launch {
             isLoaderActive = true
             try {
@@ -328,7 +328,7 @@ fun OnboardingScreen() {
                             items(registeredList) { passenger ->
 
                                 val passengerBitmap =
-                                    ImageUtils.decodeBase64ToBitmap(passenger.profileImageBase64)
+                                    Utils.decodeBase64ToBitmap(passenger.profileImageBase64)
 
                                 PassengerCard(passenger = passenger,
                                     passengerBitmap = passengerBitmap,
@@ -358,7 +358,7 @@ fun OnboardingScreen() {
                                                 ?: "",
                                             morningTimeInput = passenger.morningPickupTime ?: "",
                                             eveningTimeInput = passenger.eveningPickupTime ?: "",
-                                            capturedPhotoPreview = ImageUtils.decodeBase64ToBitmap(
+                                            capturedPhotoPreview = Utils.decodeBase64ToBitmap(
                                                 passenger.profileImageBase64
                                             ),
                                             remarks = passenger.remarks ?: ""
@@ -394,7 +394,7 @@ fun OnboardingScreen() {
         ManagementMode.VIEW_DETAILS -> {
 
             val passengerBitmap =
-                ImageUtils.decodeBase64ToBitmap(
+                Utils.decodeBase64ToBitmap(
                     selectedPassenger?.profileImageBase64
                 )
 

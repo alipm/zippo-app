@@ -34,7 +34,7 @@ export class Passenger extends Document {
   destinationCoordinates: { lat: number; lng: number }; // Set once at school/office hub
 
   @Prop({ default: true })
-  isActive: boolean; // Soft delete tracking flag
+  isActive: boolean; 
 
   @Prop({ required: false, default: null })
   profileImageBase64: string;

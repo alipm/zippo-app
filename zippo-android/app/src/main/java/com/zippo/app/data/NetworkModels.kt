@@ -62,7 +62,9 @@ data class LedgerInvoiceResponse(
     val description: String,
     val fareAmount: Int,
     val isSettled: Boolean,
-    val parentPhoneNumber: String
+    val parentPhoneNumber: String,
+    val profileImageBase64: String? = null,
+    val paymentDate: String? = null
 )
 
 data class LedgerSummaryResponse(
@@ -70,6 +72,8 @@ data class LedgerSummaryResponse(
     val message: String,
     val totalCollected: Int,
     val pendingDues: Int,
+    val paidCount: Int,
+    val dueCount: Int,
     val invoices: List<LedgerInvoiceResponse>
 )
 

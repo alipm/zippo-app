@@ -13,6 +13,7 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
 // 🟢 PASSENGER REGISTRATION REQUEST PAYLOAD SKELETON DEFINITION
@@ -33,7 +34,6 @@ data class CreatePassengerRequest(
 data class CoordinateNode(val lat: Double, val lng: Double)
 
 interface ZippoApiService {
-
     // POST endpoint: /trips/build-roster
     @POST("trips/build-roster")
     suspend fun buildDailyRoster(
@@ -44,7 +44,8 @@ interface ZippoApiService {
     // 🟢 NEW ENDPOINT 1: Fetch consolidated monthly invoicing arrays
     @GET("payments/ledger-summary")
     suspend fun fetchFinancialLedger(
-        @Header("x-driver-id") driverId: String
+        @Query("driverId") driverId: String,
+        @Query("month") month: String
     ): LedgerSummaryResponse
 
     // 🟢 NEW ENDPOINT 2: Submit out-of-band payment status settlements
@@ -84,6 +85,12 @@ interface ZippoApiService {
         @Path("id") passengerId: String,
         @Body request: CreatePassengerRequest
     ): Map<String, Any>
+
+    @GET("payments/available-months")
+    suspend fun fetchAvailableMonths(
+        @Query("driverId")
+        driverId: String
+    ): List<String>
 
     companion object {
 

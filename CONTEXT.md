@@ -68,3 +68,87 @@ This document serves as the absolute master engineering blueprint, systemic memo
 * **Micro-SaaS B2B Pricing:** Post-trial, access is controlled via a **`₹99/month`** subscription layout model.
 * **Zero-Cost Manual Verification Script:** Payments are collected out-of-band via standard UPI QR scans displayed inside the application. The driver pastes their payment **UPI Transaction ID / UTR Number** into the application, allowing an admin to manually verify bank lines and flip the database subscription validation flags.
 * **Family/Household Billing Resolution:** Supports a **Parent/Household Grouping Key**. Multiple siblings picked up from the same gate can be linked under one single parent profile. This aggregates their individual subscription obligations into one unified invoice item while keeping separate check-in flags on the active driving roster.
+
+---
+
+# 💰 Financial Ledger & Invoice Billing Module (Implemented)
+
+## Overview
+
+ZIPPO now uses an Invoice-based Ledger Architecture instead of directly tracking payments against Passenger records.
+
+This ensures:
+
+- Historical payment records are preserved.
+- Deleted passengers do not receive future invoices.
+- Previous billing months remain accessible.
+- Month-wise financial reporting is supported.
+
+---
+
+## Invoice Collection
+
+A dedicated Invoice MongoDB collection has been introduced.
+
+Fields:
+
+- passengerId
+- driverId
+- passengerName
+- billingMonth (YYYY-MM)
+- amount
+- isSettled
+- paymentMethod
+- paymentDate
+- parentPhoneNumber
+- profileImageBase64
+
+---
+
+## Monthly Invoice Generation
+
+Invoices are automatically generated when the Money Ledger opens.
+
+Rules:
+
+- Only active passengers are considered.
+- One invoice per passenger per month.
+- Duplicate invoice creation is prevented.
+- Invoice history is permanently preserved.
+
+Example:
+
+September 2026
+
+- Masoom
+- Vijay
+- Rahena
+
+October 2026
+
+- Masoom
+- Vijay
+- Rahena
+
+---
+
+## Soft Delete Strategy
+
+Passenger records are no longer physically deleted.
+
+Instead:
+
+```ts
+isActive = false
+and its functionality are as 
+## Invoice Collection
+## Monthly Invoice Generation
+## Soft Delete Strategy
+## Ledger Dashboard
+## Invoice Card Features
+## Payment Settlement Workflow
+## Payment Date Display
+## Month-Wise Ledger History
+## Available Months API
+## WhatsApp Reminder Integration
+## Current Ledger Status

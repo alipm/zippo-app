@@ -27,28 +27,43 @@ export class PassengersService {
   }
 
   async findAllPassengers(driverId: string) {
-    return this.passengerModel.find({ driverId }).lean();
+    return this.passengerModel.find({ driverId, isActive: true, }).lean();
   }
 
-  async deletePassenger(driverId: string, passengerId: string) {
-    const passenger = await this.passengerModel.findOneAndDelete({
-      _id: passengerId,
-      driverId,
-    });
+  async deletePassenger(
+  driverId: string,
+  passengerId: string,
+  ) {
 
-    if (!passenger) {
-      return {
-        success: false,
-        message: 'Passenger not found',
-      };
-    }
+  const passenger =
+    await this.passengerModel.findOneAndUpdate(
+      {
+        _id: passengerId,
+        driverId,
+      },
+      {
+        $set: {
+          isActive: false,
+        },
+      },
+      {
+        returnDocument: 'after',
+      },
+    );
 
+  if (!passenger) {
     return {
-      success: true,
-      message: 'Passenger deleted successfully',
-      passengerId,
+      success: false,
+      message: 'Passenger not found',
     };
   }
+
+  return {
+    success: true,
+    message: 'Passenger archived successfully',
+    passengerId,
+  };
+}
 
   async updatePassenger(
     driverId: string,
