@@ -1,35 +1,45 @@
 package com.zippo.app.ui.screens
 
+// 🟢 ADD this import line to your file header list:
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zippo.app.data.BuildRosterRequest
 import com.zippo.app.data.DriverLocation
+import com.zippo.app.data.LocalPassengerEntity
+import com.zippo.app.data.MarkAttendanceRequest
 import com.zippo.app.data.PassengerResponse
 import com.zippo.app.data.ZippoApiService
+import com.zippo.app.data.ZippoRoomDatabase
 import com.zippo.app.services.LocationService
 import com.zippo.app.ui.theme.*
+import com.zippo.app.utils.AppConstants
+import com.zippo.app.utils.Utils.decodeBase64ToBitmap
+import com.zippo.app.utils.Utils.generateTripSizeMap
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
-import com.zippo.app.data.ZippoRoomDatabase
-import com.zippo.app.data.LocalPassengerEntity
-// 🟢 ADD this import line to your file header list:
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +48,6 @@ fun HomeScreen() {
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { ZippoApiService.create() }
 
-    // 🟢 ADD: Instantiate the local SQLite DAO holder controller profile
     val database = remember { ZippoRoomDatabase.getDatabase(context) }
     val passengerDao = remember { database.passengerCacheDao() }
 
@@ -46,9 +55,31 @@ fun HomeScreen() {
     var selectedTripTab by remember { mutableStateOf(1) }
     var isLoading by remember { mutableStateOf(false) }
     var isTrackingActive by remember { mutableStateOf(false) }
+    var tripStarted by remember { mutableStateOf(false) }
     var activeRosterList by remember { mutableStateOf<List<PassengerResponse>>(emptyList()) }
-    // 🟢 ADD: Tracks exact active trip splits returned from MongoDB Atlas dynamically
+    var totalPassengersInTrip by remember { mutableStateOf(0) }
+    var totalActivePassengers by remember { mutableStateOf(0) }
+    var absentPassengerIds by remember { mutableStateOf(setOf<String>()) }
+    val nextPassenger = activeRosterList.firstOrNull()
+    var completedCount by remember { mutableStateOf(0) }
+    var vehicleCapacity by remember { mutableIntStateOf(5) }
+    var absentCount by remember { mutableStateOf(0) }
     var dynamicAvailableTrips by remember { mutableStateOf<List<Int>>(listOf(1)) }
+    var expandedNotes by remember { mutableStateOf(false) }
+    val totalTrips = dynamicAvailableTrips.size
+
+    val parentAlertReceiver = remember {
+        object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val passengerName = intent?.getStringExtra("PASSENGER_NAME") ?: "Passenger"
+                sendFreeWhatsAppIntent(
+                    context = context!!,
+                    phoneNumber = nextPassenger?.phoneNumber ?: AppConstants.DEFAULT_PHONE_NUMBER,
+                    messageText = """Hello, Your pickup vehicle is within 1 KM. Passenger: $passengerName Please be ready. - Zippo""".trimIndent()
+                )
+            }
+        }
+    }
 
     fun toggleBackgroundLocationTracking() {
         val serviceIntent = Intent(context, LocationService::class.java)
@@ -56,7 +87,8 @@ fun HomeScreen() {
         if (!isTrackingActive) {
             // 🟢 ADD: Extract the active stop from your live database-backed roster list
             val nextStop = activeRosterList.firstOrNull()
-            val activeCoords = if (isMorningShift) nextStop?.homeCoordinates else nextStop?.destinationCoordinates
+            val activeCoords =
+                if (isMorningShift) nextStop?.homeCoordinates else nextStop?.destinationCoordinates
 
             // Bind the real database parameters to the outbound intent payload wrapper
             serviceIntent.putExtra("TARGET_LAT", activeCoords?.lat ?: 17.4344)
@@ -69,7 +101,11 @@ fun HomeScreen() {
                 context.startService(serviceIntent)
             }
             isTrackingActive = true
-            Toast.makeText(context, "Tracking Geofence set for: ${nextStop?.name ?: "First Stop"}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                "Tracking Geofence set for: ${nextStop?.name ?: "First Stop"}",
+                Toast.LENGTH_SHORT
+            ).show()
         } else {
             context.stopService(serviceIntent)
             isTrackingActive = false
@@ -77,17 +113,24 @@ fun HomeScreen() {
         }
     }
 
-
     fun fetchLiveRosterFromBackend() {
         coroutineScope.launch {
             isLoading = true
             try {
-                val uniqueDeviceDriverId = "driver_moto_g32"
+                val uniqueDeviceDriverId = AppConstants.DEMO_DRIVER_ID
+                val tripSizeMap = generateTripSizeMap(
+                    totalPassengers =
+                    if (totalActivePassengers > 0)
+                        totalActivePassengers
+                    else
+                        5,
+                    capacity = vehicleCapacity
+                )
                 val requestPayload = BuildRosterRequest(
-                    date = "2026-09-09",
+                    date = LocalDate.now().toString(),//"2026-09-09",
                     shift = if (isMorningShift) "MORNING" else "EVENING",
                     currentDriverLocation = DriverLocation(17.4344, 78.5562),
-                    customTripSizes = mapOf("1" to 3, "2" to 3, "3" to 11)
+                    customTripSizes = tripSizeMap
                 )
 
                 val response = apiService.buildDailyRoster(
@@ -96,6 +139,7 @@ fun HomeScreen() {
                 )
 
                 if (response.success && response.data.isNotEmpty()) {
+                    totalActivePassengers = response.data.sumOf { it.passengerIds.size }
                     // 🟢 ADD: Extracts exact list of trips calculated by your backend service
                     dynamicAvailableTrips = response.data.map { it.tripNumber }.distinct().sorted()
                     val incomingList = response.data.flatMap { segment ->
@@ -112,15 +156,18 @@ fun HomeScreen() {
                                     homeCoordinates = profile.homeCoordinates,
                                     destinationCoordinates = profile.destinationCoordinates,
                                     phoneNumber = profile.phoneNumber ?: "9849011223",
-                                    address = if ((profile.passengerType ?: "SCHOOL") == "SCHOOL") "School Pickup Node" else "Office Transit Node"
+                                    profileImageBase64 = profile.profileImageBase64,
+                                    address = if ((profile.passengerType
+                                            ?: "SCHOOL") == "SCHOOL"
+                                    ) "School Pickup Node" else "Office Transit Node",
+                                    remarks = profile.remarks ?: "",
                                 )
                             }
                         } else emptyList()
                     }
-
                     activeRosterList = incomingList
+                    totalPassengersInTrip = incomingList.size
                     Toast.makeText(context, "Cloud sync complete!", Toast.LENGTH_SHORT).show()
-
                     // 🟢 ADD: Asynchronously persist the fresh network batch right onto local SQLite disk cache tables
                     coroutineScope.launch {
                         try {
@@ -139,7 +186,9 @@ fun HomeScreen() {
                                     destLat = p.destinationCoordinates?.lat ?: 17.4225,
                                     destLng = p.destinationCoordinates?.lng ?: 78.5412,
                                     phoneNumber = p.phoneNumber ?: "",
-                                    address = p.address ?: ""
+                                    address = p.address ?: "",
+                                    profileImageBase64 = p.profileImageBase64 ?: "",
+                                    remarks = p.remarks ?: "",
                                 )
                             }
                             passengerDao.insertPassengerBatch(entitiesToCache)
@@ -149,8 +198,11 @@ fun HomeScreen() {
                     }
                 }
             } catch (e: Exception) {
-                // 🟢 FIXED: Gracefully intercepts network blocks and switches instantly to offline local data files!
-                Toast.makeText(context, "Network Offline. Loading local cache...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Network Offline. Loading local cache...",
+                    Toast.LENGTH_SHORT
+                ).show()
 
                 try {
                     val cachedEntities = passengerDao.getAllCachedPassengers()
@@ -164,25 +216,81 @@ fun HomeScreen() {
                                 monthlyFare = entity.monthlyFare,
                                 morningPickupTime = entity.morningPickupTime,
                                 eveningPickupTime = entity.eveningPickupTime,
-                                homeCoordinates = com.zippo.app.data.LocationCoordinate(entity.homeLat, entity.homeLng),
-                                destinationCoordinates = com.zippo.app.data.LocationCoordinate(entity.destLat, entity.destLng),
+                                homeCoordinates = com.zippo.app.data.LocationCoordinate(
+                                    entity.homeLat,
+                                    entity.homeLng
+                                ),
+                                destinationCoordinates = com.zippo.app.data.LocationCoordinate(
+                                    entity.destLat,
+                                    entity.destLng
+                                ),
                                 phoneNumber = entity.phoneNumber,
-                                address = entity.address
+                                address = entity.address,
+                                profileImageBase64 = entity.profileImageBase64,
+                                remarks = entity.remarks,
                             )
                         }
                     }
                 } catch (cacheEx: Exception) {
-                    Toast.makeText(context, "Local Disk Read Failure: ${cacheEx.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        "Local Disk Read Failure: ${cacheEx.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             } finally {
                 isLoading = false
             }
-
         }
+    }
+
+    fun saveAttendance(
+        passengerId: String,
+        status: String
+    ) {
+        coroutineScope.launch {
+            try {
+                apiService.markAttendance(
+                    driverId = AppConstants.DEMO_DRIVER_ID,
+                    request = MarkAttendanceRequest(
+                        passengerId = passengerId,
+                        date = LocalDate.now().toString(),//"2026-10-06", // temporary
+                        shift =
+                        if (isMorningShift)
+                            "MORNING"
+                        else
+                            "EVENING",
+                        status = status
+                    )
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun restartTrackingForNextPassenger() {
+
+        if (!tripStarted) return
+
+        toggleBackgroundLocationTracking()
+        toggleBackgroundLocationTracking()
     }
 
     LaunchedEffect(isMorningShift) {
         fetchLiveRosterFromBackend()
+    }
+
+    LaunchedEffect(selectedTripTab) {
+        fetchLiveRosterFromBackend()
+    }
+
+    DisposableEffect(Unit) {
+        val filter = android.content.IntentFilter("ZIPPO_PARENT_ALERT")
+        context.registerReceiver(parentAlertReceiver, filter)
+        onDispose {
+            context.unregisterReceiver(parentAlertReceiver)
+        }
     }
 
     Column(
@@ -190,191 +298,598 @@ fun HomeScreen() {
             .fillMaxSize()
             .background(DarkChassis)
     ) {
-        // A. Slim Top App Bar Banner Component (Fixed Height)
         Surface(
             color = YellowAuto,
-            modifier = Modifier.fillMaxWidth().height(56.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
         ) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text("ZIPPO DASHBOARD", fontWeight = FontWeight.Black, color = Color.Black, fontSize = 18.sp)
+                Text(
+                    "Route Planner",
+                    fontWeight = FontWeight.Black,
+                    color = Color.Black,
+                    fontSize = 18.sp
+                )
             }
         }
-        // B. Inner Scrollable Content Frame Container (Now layout elements have clear margins!)
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(8.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 🟢 ADD: High-Visibility Real-Time Map Radar Interface Component Container
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp), // Dedicated display matrix height layer
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceGray)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            if (tripStarted) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceGray)
                 ) {
-                    // Renders structural spatial tracking visual anchors inside your staging environment
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(8.dp)
                     ) {
-                        Text("🗺️ LIVE RADAR: NACHARAM SECTOR ACTIVE", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Dynamic location status text based on your background service states
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .background(if (isTrackingActive) SuccessGreen else AlertRed, CircleShape)
+                        Text(
+                            text = "📍 NEXT PICKUP",
+                            color = YellowAuto,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "Trip $selectedTripTab",
+                            color = YellowAuto,
+                            fontSize = 12.sp
+                        )
+                        val passengerBitmap =
+                            decodeBase64ToBitmap(
+                                nextPassenger?.profileImageBase64
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (isTrackingActive) "Streaming Telemetry: 10.0.2.2" else "GPS Stream Offline",
-                                color = Color.LightGray,
-                                fontSize = 13.sp
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (passengerBitmap != null) {
+                                Image(
+                                    bitmap = passengerBitmap.asImageBitmap(),
+                                    contentDescription = "Passenger Photo",
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = if (nextPassenger == null) "Trip Completed" else nextPassenger?.name
+                                        ?: "No Passenger Available",
+                                    color = Color.White,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (nextPassenger != null) {
+                                    Text(
+                                        text = if (isMorningShift)
+                                            "⏰ ${nextPassenger?.morningPickupTime ?: "--"}"
+                                        else
+                                            "⏰ ${nextPassenger?.eveningPickupTime ?: "--"}",
+                                        color = YellowAuto
+                                    )
+                                }
+                                Text(
+                                    text = "Stops: ${activeRosterList.size}",
+                                    color = Color.LightGray
+                                )
+                                Text(
+                                    text = "Done: $completedCount | Absent: $absentCount | Total: $totalPassengersInTrip",
+                                    color = SuccessGreen,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        // Visual tracking nodes representing your active database coordinates structure
-                        Text("🎯 Target Gate: ${activeRosterList.firstOrNull()?.name ?: "No Stop Active"}", color = YellowAuto, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text("📐 Radius Geofence Bound: 100 Meters Active", color = Color.LightGray, fontSize = 12.sp)
+                        if (!nextPassenger?.remarks.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFF2A2A2A)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(6.dp)
+                                ) {
+                                    Text(
+                                        text = "📝 Notes",
+                                        color = YellowAuto,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = nextPassenger?.remarks ?: "",
+                                        color = Color.LightGray,
+                                        fontSize = 12.sp,
+                                        maxLines = if (expandedNotes) 10 else 3
+                                    )
+                                    if ((nextPassenger?.remarks?.length ?: 0) > 80) {
+                                        TextButton(
+                                            onClick = {
+                                                expandedNotes = !expandedNotes
+                                            }
+                                        ) {
+                                            Text(
+                                                text = if (expandedNotes)
+                                                    "Show Less"
+                                                else
+                                                    "Show More",
+                                                color = YellowAuto
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (nextPassenger != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        val coords =
+                                            if (isMorningShift)
+                                                nextPassenger?.homeCoordinates
+                                            else
+                                                nextPassenger?.destinationCoordinates
+                                        launchGoogleMapsIntent(
+                                            context,
+                                            coords?.lat,
+                                            coords?.lng
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = BluePin
+                                    )
+                                ) {
+                                    Text("NAV")
+                                }
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        triggerNativeDialerIntent(
+                                            context,
+                                            nextPassenger?.phoneNumber
+                                                ?: AppConstants.DEFAULT_PHONE_NUMBER
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.DarkGray
+                                    )
+                                ) {
+                                    Text("CALL")
+                                }
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        if (activeRosterList.isNotEmpty()) {
+                                            val completedPassenger =
+                                                activeRosterList.first()
+                                            saveAttendance(
+                                                passengerId = completedPassenger.id ?: "",
+                                                status = "PICKED_UP"
+                                            )
+                                            activeRosterList = activeRosterList.drop(1)
+                                            completedCount++
+                                            restartTrackingForNextPassenger()
+                                            Toast.makeText(
+                                                context,
+                                                "Passenger Picked Up",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = SuccessGreen
+                                    )
+                                ) {
+                                    Text("DONE")
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            TextButton(
+                                onClick = {
+                                    if (activeRosterList.size > 1) {
+                                        val skippedPassenger =
+                                            activeRosterList.first()
+                                        activeRosterList =
+                                            activeRosterList.drop(1) + skippedPassenger
+                                        Toast.makeText(
+                                            context,
+                                            "${skippedPassenger.name} moved to end",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "⏭ Skip Passenger",
+                                    color = Color(0xFFFF9800),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            TextButton(
+                                onClick = {
+                                    if (activeRosterList.isNotEmpty()) {
+                                        val absentPassenger =
+                                            activeRosterList.first()
+                                        saveAttendance(
+                                            passengerId = absentPassenger.id ?: "",
+                                            status = "ABSENT"
+                                        )
+                                        activeRosterList = activeRosterList.drop(1)
+                                        absentCount++
+                                        restartTrackingForNextPassenger()
+                                        Toast.makeText(
+                                            context,
+                                            "${absentPassenger.name} marked absent",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "🚫 Mark Current Passenger Absent",
+                                    color = AlertRed,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             }
-            // 🟢 HARDWARE TRACKING MASTER BUTTON COMMAND TARGET
+            if (activeRosterList.isEmpty()) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = SuccessGreen
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(6.dp),
+                    ) {
+                        Text(
+                            text =
+                            if (selectedTripTab < totalTrips)
+                                "✅ TRIP $selectedTripTab COMPLETED"
+                            else
+                                "🎉 ALL TRIPS COMPLETED",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Picked: $completedCount",
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Absent: $absentCount",
+                            color = Color.White
+                        )
+                        if (selectedTripTab < totalTrips) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    selectedTripTab++
+                                    completedCount = 0
+                                    absentCount = 0
+                                    tripStarted = true
+                                    fetchLiveRosterFromBackend()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("START TRIP ${selectedTripTab + 1}")
+                            }
+                        }
+                    }
+                }
+            }
+            if (tripStarted) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "📋 UPCOMING STOPS",
+                            color = YellowAuto,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        activeRosterList
+                            .drop(1)
+                            .take(5)
+                            .forEachIndexed { index, passenger ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${index + 2}. ${passenger.name}",
+                                        color = Color.White
+                                    )
+                                    if (absentPassengerIds.contains(passenger.id ?: "")) {
+                                        Text(
+                                            text = "🚫 ABSENT",
+                                            color = AlertRed,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    } else {
+                                        Button(
+                                            onClick = {
+                                                absentPassengerIds =
+                                                    absentPassengerIds + (passenger.id ?: "")
+                                                saveAttendance(
+                                                    passengerId = passenger.id ?: "",
+                                                    status = "ABSENT"
+                                                )
+                                                fetchLiveRosterFromBackend()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = AlertRed
+                                            )
+                                        ) {
+                                            Text("Absent")
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                            }
+
+                        if (activeRosterList.size <= 1) {
+                            Text(
+                                text = "No upcoming passengers",
+                                color = Color.LightGray
+                            )
+                        }
+                    }
+                }
+            }
+//            val estimatedTrips =
+//                kotlin.math.ceil(activeRosterList.size.toDouble() / vehicleCapacity.toDouble())
+//                    .toInt()
+            if (!tripStarted) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { isMorningShift = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isMorningShift) YellowAuto else SurfaceGray,
+                            contentColor = if (isMorningShift) Color.Black else Color.White
+                        )
+                    ) {
+                        Text("MORNING", fontWeight = FontWeight.Bold)
+                    }
+                    Button(
+                        onClick = { isMorningShift = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (!isMorningShift) YellowAuto else SurfaceGray,
+                            contentColor = if (!isMorningShift) Color.Black else Color.White
+                        )
+                    ) {
+                        Text("EVENING", fontWeight = FontWeight.Bold)
+                    }
+                }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Vehicle Capacity",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        if (vehicleCapacity > 1)
+                                            vehicleCapacity--
+                                    }
+                                ) {
+                                    Text("-")
+                                }
+                                Text(
+                                    text = vehicleCapacity.toString(),
+                                    color = YellowAuto,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                )
+                                TextButton(
+                                    onClick = {
+                                        vehicleCapacity++
+                                    }
+                                ) {
+                                    Text("+")
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Passengers: ${activeRosterList.size}",
+                            color = Color.LightGray
+                        )
+                        Text(
+                            text = "Estimated Trips: ${dynamicAvailableTrips.size}",
+                            color = YellowAuto,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Button(
+                    onClick = {
+                        fetchLiveRosterFromBackend()
+                        Toast.makeText(
+                            context,
+                            "Route regenerated using capacity $vehicleCapacity",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SuccessGreen
+                    )
+                ) {
+                    Text(
+                        "Create Trips",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // 🟢 WITH THIS DYNAMIC LOOP MATRIX:
+                    dynamicAvailableTrips.forEach { tripNum ->
+                        FilterChip(
+                            selected = selectedTripTab == tripNum,
+                            onClick = { selectedTripTab = tripNum },
+                            label = { Text("Trip $tripNum", fontWeight = FontWeight.Bold) }
+                        )
+                    }
+                }
+            }
             Button(
-                onClick = { toggleBackgroundLocationTracking() },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
+                onClick = {
+                    tripStarted = !tripStarted
+                    toggleBackgroundLocationTracking()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isTrackingActive) AlertRed else SuccessGreen
                 )
             ) {
                 Text(
-                    text = if (isTrackingActive) "🛑 STOP DRIVING TRACKING" else "🚀 START ROUTE TRACKING",
+                    text = if (tripStarted) "🛑 STOP TRIP" else "🚀 START TRIP",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Black,
                     color = Color.White
                 )
             }
-
-            // Shift Selection Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = { isMorningShift = true },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isMorningShift) YellowAuto else SurfaceGray,
-                        contentColor = if (isMorningShift) Color.Black else Color.White
-                    )
+            if (!tripStarted) {
+                LazyColumn(
+                    modifier = Modifier.height(400.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("☀️ MORNING", fontWeight = FontWeight.Bold)
-                }
-                Button(
-                    onClick = { isMorningShift = false },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (!isMorningShift) YellowAuto else SurfaceGray,
-                        contentColor = if (!isMorningShift) Color.Black else Color.White
-                    )
-                ) {
-                    Text("🌙 EVENING", fontWeight = FontWeight.Bold)
-                }
-            }
-
-            // Capacity tabs indicator matrix
-            Card(colors = CardDefaults.cardColors(containerColor = SurfaceGray)) {
-                Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                    Text("Active Load Balancing: 3+3+11 Split Mode", color = Color.LightGray, fontSize = 12.sp)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // 🟢 WITH THIS DYNAMIC LOOP MATRIX:
-                        dynamicAvailableTrips.forEach { tripNum ->
-                            FilterChip(
-                                selected = selectedTripTab == tripNum,
-                                onClick = { selectedTripTab = tripNum },
-                                label = { Text("Trip $tripNum", fontWeight = FontWeight.Bold) }
-                            )
-                        }
-                    }
-                }
-            }
-
-            Text("LIVE NETWORK CHRONO TIMELINE:", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(activeRosterList) { passenger ->
-                    Card(colors = CardDefaults.cardColors(containerColor = SurfaceGray)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Column {
-                                    val pickupTime = if (isMorningShift) passenger.morningPickupTime else passenger.eveningPickupTime
-                                    Text(text = pickupTime ?: "07:30 AM",
-                                        fontSize = 20.sp, fontWeight = FontWeight.Black, color = YellowAuto)
-                                    Text(text = passenger.name ?: "Unknown Candidate", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextMain)
+                    items(activeRosterList) { passenger ->
+                        Card(colors = CardDefaults.cardColors(containerColor = SurfaceGray)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        val pickupTime =
+                                            if (isMorningShift) passenger.morningPickupTime else passenger.eveningPickupTime
+                                        Text(
+                                            text = pickupTime ?: "07:30 AM",
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = YellowAuto
+                                        )
+                                        Text(
+                                            text = passenger.name ?: "Unknown Candidate",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextMain
+                                        )
+                                    }
+                                    Button(
+                                        onClick = {
+                                            val activeCoords =
+                                                if (isMorningShift) passenger.homeCoordinates else passenger.destinationCoordinates
+                                            // 🟢 FIXED: Pulls double parameters with zero-risk fallback definitions
+                                            val targetLat = activeCoords?.lat ?: 17.4344
+                                            val targetLng = activeCoords?.lng ?: 78.5562
+                                            launchGoogleMapsIntent(context, targetLat, targetLng)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = BluePin),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("🗺️ NAV")
+                                    }
                                 }
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // 🟢 FIXED: Removed manual 1km alert. Dials the actual database-stored passenger number directly!
                                 Button(
                                     onClick = {
-                                        val activeCoords = if (isMorningShift) passenger.homeCoordinates else passenger.destinationCoordinates
-                                        // 🟢 FIXED: Pulls double parameters with zero-risk fallback definitions
-                                        val targetLat = activeCoords?.lat ?: 17.4344
-                                        val targetLng = activeCoords?.lng ?: 78.5562
-                                        launchGoogleMapsIntent(context, targetLat, targetLng)
+                                        triggerNativeDialerIntent(
+                                            context,
+                                            passenger.phoneNumber
+                                                ?: AppConstants.DEFAULT_PHONE_NUMBER
+                                        )
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BluePin),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text("🗺️ NAV")
+                                    Text(
+                                        "📞 CALL PARENT CONTACT",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = Color.White
+                                    )
                                 }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // 🟢 FIXED: Removed manual 1km alert. Dials the actual database-stored passenger number directly!
-                            Button(
-                                onClick = { triggerNativeDialerIntent(context, passenger.phoneNumber ?: "8121242633") },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
-                                modifier = Modifier.fillMaxWidth().height(48.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("📞 CALL PARENT CONTACT", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                             }
                         }
                     }
                 }
-            }
-
-            // 🟢 CLOUD DATABASE MANUAL REFRESH BUTTON
-            Button(
-                onClick = { fetchLiveRosterFromBackend() },
-                colors = ButtonDefaults.buttonColors(containerColor = SurfaceGray),
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("🔄 FORCE SYNC CLOUD DATABASE", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
-
-// ================= NATIVE ANDROID SYSTEM INTENTS (100% FREE) =================
 
 fun launchGoogleMapsIntent(context: Context, lat: Double?, lng: Double?) {
     try {
@@ -397,20 +912,21 @@ fun triggerNativeDialerIntent(context: Context, phoneNumber: String) {
 
 fun sendFreeWhatsAppIntent(context: Context, phoneNumber: String, messageText: String) {
     try {
-        val formattedNumber = if (!phoneNumber.startsWith("91")) "91$phoneNumber" else phoneNumber
-        val urlEncodedMessage = URLEncoder.encode(messageText, "UTF-8")
-
-        val whatsappUri = Uri.parse("https://whatsapp.com")
-
-        val chatIntent = Intent(Intent.ACTION_VIEW, whatsappUri).apply {
-            setPackage("com.whatsapp")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(chatIntent)
+        val formattedNumber = phoneNumber.replace("+", "")
+        val whatsappIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse(
+                "https://wa.me/$formattedNumber?text=${
+                    URLEncoder.encode(
+                        messageText,
+                        "UTF-8"
+                    )
+                }"
+            )
+        )
+        whatsappIntent.setPackage("com.whatsapp")
+        context.startActivity(whatsappIntent)
     } catch (e: Exception) {
-        val smsIntent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$phoneNumber")).apply {
-            putExtra("sms_body", messageText)
-        }
-        context.startActivity(smsIntent)
+        Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
     }
 }

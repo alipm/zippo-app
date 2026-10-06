@@ -214,17 +214,17 @@ fun LedgerScreen() {
             }
         },
         containerColor = DarkChassis,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { triggerHardwareVoiceCapture() }, // 🟢 UPDATE: Replaces the placeholder toast notice
-                containerColor = YellowAuto,
-                contentColor = Color.Black,
-                shape = CircleShape,
-                modifier = Modifier.size(72.dp)
-            ) {
-                Text("🎙️", fontSize = 28.sp)
-            }
-        }
+//        floatingActionButton = {
+//            FloatingActionButton(
+//                onClick = { triggerHardwareVoiceCapture() }, // 🟢 UPDATE: Replaces the placeholder toast notice
+//                containerColor = YellowAuto,
+//                contentColor = Color.Black,
+//                shape = CircleShape,
+//                modifier = Modifier.size(72.dp)
+//            ) {
+//                Text("🎙️", fontSize = 28.sp)
+//            }
+//        }
     ) { innerPadding ->
         Column(
             modifier = Modifier

@@ -6,6 +6,9 @@ export class DailyAttendanceLog extends Document {
   @Prop({ required: true, index: true })
   date: string; // Format: "YYYY-MM-DD"
 
+  @Prop({ required: true, index: true })
+  driverId: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Passenger', required: true, index: true })
   passengerId: Types.ObjectId;
 

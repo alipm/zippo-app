@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BuildRosterDto } from './dto/build-roster.dto.js';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class TripsService {
@@ -15,10 +16,10 @@ export class TripsService {
     const { date, shift, customTripSizes } = dto;
     const shiftFilter = shift === 'MORNING' ? 'MORNING' : 'EVENING';
 
-    // 🟢 FIXED: The system now reads the dynamic driver parameter explicitly passed into the controller method context 
+    // 🟢 FIXED: The system now reads the dynamic driver parameter explicitly passed into the controller method context
     // instead of defaulting to a static fallback string tracker profile.
     const activeDriverId = driverId || '60d0fe4f5311236168410d11';
-    
+
     // 1. Fetch active passengers matching this shift contract
     const passengers = await this.passengerModel.find({
       driverId,
@@ -154,6 +155,34 @@ export class TripsService {
       current = nextPassenger.coordinates;
     }
     return sortedIds;
+  }
+
+  async markAttendance(driverId: string, dto: any) {
+    const existingLog = await this.attendanceModel.findOne({
+      passengerId: new Types.ObjectId(dto.passengerId),
+      date: dto.date,
+      driverId,
+    });
+
+    if (existingLog) {
+      if (dto.shift === 'MORNING') {
+        existingLog.morningStatus = dto.status;
+      } else {
+        existingLog.eveningStatus = dto.status;
+      }
+
+      return existingLog.save();
+    }
+
+    const attendance = new this.attendanceModel({
+      driverId,
+      passengerId: dto.passengerId,
+      date: dto.date,
+      morningStatus: dto.shift === 'MORNING' ? dto.status : 'PENDING',
+      eveningStatus: dto.shift === 'EVENING' ? dto.status : 'PENDING',
+    });
+
+    return attendance.save();
   }
 
   // Inject this execution module directly at the base of your TripsService class definitions

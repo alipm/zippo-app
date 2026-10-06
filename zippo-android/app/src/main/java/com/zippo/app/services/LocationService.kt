@@ -64,6 +64,7 @@ class LocationService : Service() {
             e.printStackTrace()
         }
     }
+
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // 🟢 ADD: Extract dynamic coordinate payloads passed from the UI thread intent bundle
@@ -109,22 +110,30 @@ class LocationService : Service() {
                     // 1,000-METER BOUNDARY GEOMETRIC TRIGGER POINT ;later change 100 to 1000
                     if (distanceInMeters <= 100.0 && !hasTriggeredAlert) {
                         hasTriggeredAlert = true
-
-                        // Fire a background text alert broadcast loop to warn the driver context
-                        Toast.makeText(
-                            applicationContext,
-                            "🚨 ZIPPO ALERT: Within 1 Km of next stop! Open app to trigger alert.",
-                            Toast.LENGTH_LONG
-                        ).show()
+//                        notifyArrival()
+                        val alertIntent = Intent("ZIPPO_PARENT_ALERT")
+                        alertIntent.putExtra("PASSENGER_NAME", targetPassengerName)
+                        sendBroadcast(alertIntent)
+                        Toast.makeText(applicationContext, "🚨 $targetPassengerName is within 1 KM", Toast.LENGTH_LONG).show()
+                        android.util.Log.d(
+                            "ZIPPO_GEOFENCE",
+                            "$targetPassengerName reached 1 KM radius"
+                        )
                     }
 
                     // 🟢 ADD: Emit Real-Time Telemetry Payload Blocks straight over the socket highway
                     try {
                         val telemetryData = JSONObject().apply {
-                            put("driverId", "60d0fe4f5311236168410d11") // Matches your synced testing ID token profile context
+                            put(
+                                "driverId",
+                                "60d0fe4f5311236168410d11"
+                            ) // Matches your synced testing ID token profile context
                             put("lat", location.latitude)
                             put("lng", location.longitude)
-                            put("speed", location.speed * 3.6) // Converts raw meters/sec values to Km/h for the driver's display matrix
+                            put(
+                                "speed",
+                                location.speed * 3.6
+                            ) // Converts raw meters/sec values to Km/h for the driver's display matrix
                         }
                         // Fires the packet over the persistent duplex WebSocket connection channel natively
                         mSocket?.emit("update-location", telemetryData)
@@ -136,12 +145,25 @@ class LocationService : Service() {
         }
     }
 
+//    private fun notifyArrival() {
+//        Toast.makeText(applicationContext, "$targetPassengerName is within 1 KM", Toast.LENGTH_LONG)
+//            .show()
+//    }
+
     // High precision mathematical Haversine algorithm tracking distance vectors safely
-    private fun calculateHaversineDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    private fun calculateHaversineDistance(
+        lat1: Double,
+        lon1: Double,
+        lat2: Double,
+        lon2: Double
+    ): Double {
         val r = 6371000.0 // Earth radius constant mapped in meters
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
+        val a =
+            sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(
+                2
+            )
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return r * c
     }

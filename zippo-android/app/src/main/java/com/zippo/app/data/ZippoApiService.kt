@@ -41,6 +41,12 @@ interface ZippoApiService {
         @Body request: BuildRosterRequest
     ): RosterApiResponse
 
+    @POST("trips/mark-attendance")
+    suspend fun markAttendance(
+        @Header("x-driver-id") driverId: String,
+        @Body request: MarkAttendanceRequest
+    ): AttendanceApiResponse
+
     // 🟢 NEW ENDPOINT 1: Fetch consolidated monthly invoicing arrays
     @GET("payments/ledger-summary")
     suspend fun fetchFinancialLedger(
@@ -97,7 +103,10 @@ interface ZippoApiService {
         fun create(): ZippoApiService {
             // 1. Build an OkHttpClient containing our cold-start countdown interceptor
             val okHttpClient = OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS) // Keeps socket open long enough for Render to boot
+                .connectTimeout(
+                    60,
+                    TimeUnit.SECONDS
+                ) // Keeps socket open long enough for Render to boot
                 .readTimeout(60, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .addInterceptor(RenderColdStartInterceptor()) // <-- Intercepts and monitors live request latencies
