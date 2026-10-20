@@ -105,3 +105,78 @@ data class VoiceKhataResponse(
 data class VoiceParsedPayload(
     val targetFamily: String?, val amountCollected: Int?, val paymentType: String?
 )
+
+data class SwapPassengerRequest(
+    val sourceTripNumber: Int,
+    val destinationTripNumber: Int,
+    val passengerId: String,
+    val date: String,
+    val shift: String
+)
+
+data class SwapPassengerResponse(
+    val success: Boolean
+)
+
+data class DriverLoginRequest(
+    val email: String,
+    val password: String
+)
+
+data class DriverLoginResponse(
+    val success: Boolean,
+    val data: DriverProfile
+)
+
+data class DriverProfile(
+    val _id: String,
+    val name: String,
+    val phoneNumber: String,
+    val vehicleNumber: String,
+    val role: String
+)
+
+data class GenerateAssignmentCodeRequest(
+    val tripNumber: Int,
+    val date: String,
+    val shift: String
+)
+
+data class GenerateAssignmentCodeResponse(
+    val success: Boolean,
+    val code: String
+)
+
+data class JoinTripByCodeRequest(
+    val assignmentCode: String
+)
+
+data class JoinTripByCodeResponse(
+    val success: Boolean,
+    val tripNumber: Int
+)
+
+data class RegisterDriverRequest(
+    val name: String,
+    val phoneNumber: String,
+    val email: String,
+    val vehicleNumber: String?,
+    val password: String
+)
+
+data class RegisterDriverResponse(
+    val success: Boolean
+)
+
+data class ResetPasswordRequest(
+    val token: String,
+    val newPassword: String
+)
+
+data class ForgotPasswordRequest(
+    val email: String
+)
+
+data class ForgotPasswordResponse(
+    val success: Boolean
+)

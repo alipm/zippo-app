@@ -33,6 +33,7 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import com.zippo.app.utils.SessionManager
 import com.zippo.app.utils.Utils
 import com.zippo.app.utils.Utils.formatMonth
 import com.zippo.app.utils.Utils.formatPaymentDate
@@ -44,7 +45,8 @@ fun LedgerScreen() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { ZippoApiService.create() }
-    val uniqueDeviceDriverId = AppConstants.DEMO_DRIVER_ID
+    val sessionManager = remember { SessionManager(context) }
+    val uniqueDeviceDriverId = sessionManager.getDriverId() ?: ""
     // 🟢 ADD: Dynamic data state containers
     var isLoading by remember { mutableStateOf(false) }
     var totalCollected by remember { mutableStateOf(0) }

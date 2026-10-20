@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   Headers,
@@ -9,6 +10,9 @@ import {
 import { TripsService } from './trips.service.js';
 import { BuildRosterDto } from './dto/build-roster.dto.js';
 import { MarkAttendanceDto } from './dto/mark-attendance.dto.js';
+import { SwapPassengerDto } from './dto/swap-passenger.dto.js';
+import { GenerateAssignmentCodeDto } from './dto/generate-assignment-code.dto.js';
+import { JoinTripByCodeDto } from './dto/join-trip-by-code.dto.js';
 
 @Controller('trips')
 export class TripsController {
@@ -46,6 +50,37 @@ export class TripsController {
       message: 'Attendance updated successfully.',
       data: result,
     };
+  }
+
+  @Post('swap-passenger')
+  @HttpCode(HttpStatus.OK)
+  async swapPassenger(
+    @Body() dto: SwapPassengerDto,
+    @Headers('x-driver-id') driverId: string,
+  ) {
+    const activeDriverId = driverId || '60d0fe4f5311236168410d11';
+    return this.tripsService.swapPassenger(activeDriverId, dto);
+  }
+
+  @Post('generate-assignment-code')
+  async generateAssignmentCode(
+    @Headers('x-driver-id') driverId: string,
+    @Body() dto: GenerateAssignmentCodeDto,
+  ) {
+    return this.tripsService.generateAssignmentCode(driverId, dto);
+  }
+
+  @Post('join-trip-by-code')
+  async joinTripByCode(
+    @Headers('x-driver-id') driverId: string,
+    @Body() dto: JoinTripByCodeDto,
+  ) {
+    return this.tripsService.joinTripByCode(driverId, dto);
+  }
+
+  @Get('assigned')
+  async getAssignedTrips(@Headers('x-driver-id') driverId: string) {
+    return this.tripsService.getAssignedTrips(driverId);
   }
 
   // 2. NEW PRODUCTION SEEDER ENDPOINT (POST: http://localhost:3000/trips/seed-passengers)

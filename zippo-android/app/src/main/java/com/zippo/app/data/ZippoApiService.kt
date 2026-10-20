@@ -98,6 +98,50 @@ interface ZippoApiService {
         driverId: String
     ): List<String>
 
+    @POST("trips/swap-passenger")
+    suspend fun swapPassenger(
+        @Header("x-driver-id") driverId: String,
+        @Body request: SwapPassengerRequest
+    ): SwapPassengerResponse
+
+    @POST("drivers/login")
+    suspend fun loginDriver(
+        @Body request: DriverLoginRequest
+    ): DriverLoginResponse
+
+    @POST("trips/generate-assignment-code")
+    suspend fun generateAssignmentCode(
+        @Header("x-driver-id") driverId: String,
+        @Body request: GenerateAssignmentCodeRequest
+    ): GenerateAssignmentCodeResponse
+
+    @POST("trips/join-trip-by-code")
+    suspend fun joinTripByCode(
+        @Header("x-driver-id") driverId: String,
+        @Body request: JoinTripByCodeRequest
+    ): JoinTripByCodeResponse
+
+    @GET("trips/assigned")
+    suspend fun getAssignedTrips(
+        @Header("x-driver-id")
+        driverId: String
+    ): List<TripSegmentResponse>
+
+    @POST("drivers/register")
+    suspend fun registerDriver(
+        @Body request: RegisterDriverRequest
+    ): Any
+
+    @POST("drivers/forgot-password")
+    suspend fun forgotPassword(
+        @Body request: ForgotPasswordRequest
+    ): Any
+
+    @POST("drivers/reset-password")
+    suspend fun resetPassword(
+        @Body request: ResetPasswordRequest
+    ): Any
+
     companion object {
 
         fun create(): ZippoApiService {

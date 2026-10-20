@@ -7,7 +7,7 @@ import { AiModule } from './ai/ai.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PassengersModule } from './passengers/passengers.module.js';
 import { TrackingModule } from './tracking/tracking.module.js';
-
+import { DriversModule } from './drivers/drivers.module.js';
 @Module({
   imports: [
     // 1. Initialize the global environment configuration controller
@@ -28,6 +28,7 @@ import { TrackingModule } from './tracking/tracking.module.js';
     PaymentsModule,
     PassengersModule,
     TrackingModule,
+    DriversModule,
   ],
 })
 

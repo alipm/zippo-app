@@ -1,6 +1,8 @@
 package com.zippo.app.ui.screens
 
 // 🟢 ADD this import line to your file header list:
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -27,14 +29,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zippo.app.data.BuildRosterRequest
 import com.zippo.app.data.DriverLocation
+import com.zippo.app.data.GenerateAssignmentCodeRequest
+import com.zippo.app.data.JoinTripByCodeRequest
 import com.zippo.app.data.LocalPassengerEntity
 import com.zippo.app.data.MarkAttendanceRequest
 import com.zippo.app.data.PassengerResponse
+import com.zippo.app.data.SwapPassengerRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.data.ZippoRoomDatabase
 import com.zippo.app.services.LocationService
 import com.zippo.app.ui.theme.*
 import com.zippo.app.utils.AppConstants
+import com.zippo.app.utils.SessionManager
 import com.zippo.app.utils.Utils.decodeBase64ToBitmap
 import com.zippo.app.utils.Utils.generateTripSizeMap
 import kotlinx.coroutines.launch
@@ -66,20 +72,28 @@ fun HomeScreen() {
     var absentCount by remember { mutableStateOf(0) }
     var dynamicAvailableTrips by remember { mutableStateOf<List<Int>>(listOf(1)) }
     var expandedNotes by remember { mutableStateOf(false) }
+    var selectedPassengerForMove by remember { mutableStateOf<PassengerResponse?>(null) }
     val totalTrips = dynamicAvailableTrips.size
 
-    val parentAlertReceiver = remember {
-        object : android.content.BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val passengerName = intent?.getStringExtra("PASSENGER_NAME") ?: "Passenger"
-                sendFreeWhatsAppIntent(
-                    context = context!!,
-                    phoneNumber = nextPassenger?.phoneNumber ?: AppConstants.DEFAULT_PHONE_NUMBER,
-                    messageText = """Hello, Your pickup vehicle is within 1 KM. Passenger: $passengerName Please be ready. - Zippo""".trimIndent()
-                )
-            }
-        }
-    }
+    var showJoinTripDialog by remember { mutableStateOf(false) }
+    var assignmentCodeInput by remember { mutableStateOf("") }
+
+    var generatedAssignmentCode by remember { mutableStateOf<String?>(null) }
+    val sessionManager = remember { SessionManager(context) }
+    val userRole = sessionManager.getDriverRole() ?: "DRIVER"
+
+//    val parentAlertReceiver = remember {
+//        object : android.content.BroadcastReceiver() {
+//            override fun onReceive(context: Context?, intent: Intent?) {
+//                val passengerName = intent?.getStringExtra("PASSENGER_NAME") ?: "Passenger"
+//                sendFreeWhatsAppIntent(
+//                    context = context!!,
+//                    phoneNumber = nextPassenger?.phoneNumber ?: AppConstants.DEFAULT_PHONE_NUMBER,
+//                    messageText = """Hello, Your pickup vehicle is within 1 KM. Passenger: $passengerName Please be ready. - Zippo""".trimIndent()
+//                )
+//            }
+//        }
+//    }
 
     fun toggleBackgroundLocationTracking() {
         val serviceIntent = Intent(context, LocationService::class.java)
@@ -117,7 +131,7 @@ fun HomeScreen() {
         coroutineScope.launch {
             isLoading = true
             try {
-                val uniqueDeviceDriverId = AppConstants.DEMO_DRIVER_ID
+                val uniqueDeviceDriverId = sessionManager.getDriverId() ?: ""
                 val tripSizeMap = generateTripSizeMap(
                     totalPassengers =
                     if (totalActivePassengers > 0)
@@ -251,7 +265,7 @@ fun HomeScreen() {
         coroutineScope.launch {
             try {
                 apiService.markAttendance(
-                    driverId = AppConstants.DEMO_DRIVER_ID,
+                    driverId = sessionManager.getDriverId() ?: "",
                     request = MarkAttendanceRequest(
                         passengerId = passengerId,
                         date = LocalDate.now().toString(),//"2026-10-06", // temporary
@@ -277,6 +291,56 @@ fun HomeScreen() {
         toggleBackgroundLocationTracking()
     }
 
+    fun swapPassengerToTrip(
+        passengerId: String,
+        destinationTrip: Int
+    ) {
+        coroutineScope.launch {
+            try {
+                apiService.swapPassenger(
+                    driverId = sessionManager.getDriverId() ?: "",
+                    request = SwapPassengerRequest(
+                        sourceTripNumber = selectedTripTab,
+                        destinationTripNumber = destinationTrip,
+                        passengerId = passengerId,
+                        date = LocalDate.now().toString(),
+                        shift =
+                        if (isMorningShift)
+                            "MORNING"
+                        else
+                            "EVENING"
+                    )
+                )
+                fetchLiveRosterFromBackend()
+                Toast.makeText(context, "Passenger moved successfully", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Move failed", Toast.LENGTH_SHORT).show()
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun generateTripCode() {
+        coroutineScope.launch {
+            try {
+                val response = apiService.generateAssignmentCode(
+                    driverId = sessionManager.getDriverId() ?: "",
+                    request = GenerateAssignmentCodeRequest(
+                        tripNumber = selectedTripTab,
+                        date = LocalDate.now().toString(),
+                        shift = if (isMorningShift)
+                            "MORNING"
+                        else
+                            "EVENING"
+                    )
+                )
+                generatedAssignmentCode = response.code
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LaunchedEffect(isMorningShift) {
         fetchLiveRosterFromBackend()
     }
@@ -285,13 +349,13 @@ fun HomeScreen() {
         fetchLiveRosterFromBackend()
     }
 
-    DisposableEffect(Unit) {
-        val filter = android.content.IntentFilter("ZIPPO_PARENT_ALERT")
-        context.registerReceiver(parentAlertReceiver, filter)
-        onDispose {
-            context.unregisterReceiver(parentAlertReceiver)
-        }
-    }
+//    DisposableEffect(Unit) {
+//        val filter = android.content.IntentFilter("ZIPPO_PARENT_ALERT")
+//        context.registerReceiver(parentAlertReceiver, filter)
+//        onDispose {
+//            context.unregisterReceiver(parentAlertReceiver)
+//        }
+//    }
 
     Column(
         modifier = Modifier
@@ -326,6 +390,19 @@ fun HomeScreen() {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Text(
+                text = "Driver: ${sessionManager.getDriverName()}", color = Color.White
+            )
+            Text(
+                text = "Role: ${sessionManager.getDriverRole()}", color = YellowAuto
+            )
+            TextButton(
+                onClick = {
+                    sessionManager.clearSession()
+                }
+            ) {
+                Text("Logout")
+            }
             if (tripStarted) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -783,6 +860,20 @@ fun HomeScreen() {
                         fontWeight = FontWeight.Bold
                     )
                 }
+                Button(
+                    onClick = {
+                        generateTripCode()
+                    }
+                ) {
+                    Text("Generate Trip Code")
+                }
+                Button(
+                    onClick = {
+                        showJoinTripDialog = true
+                    }
+                ) {
+                    Text("Join Assigned Trip")
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // 🟢 WITH THIS DYNAMIC LOOP MATRIX:
                     dynamicAvailableTrips.forEach { tripNum ->
@@ -882,12 +973,154 @@ fun HomeScreen() {
                                         color = Color.White
                                     )
                                 }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedButton(
+                                    onClick = {
+                                        selectedPassengerForMove = passenger
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("🔄 Move To Another Trip")
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    selectedPassengerForMove?.let { passenger ->
+        AlertDialog(
+            onDismissRequest = {
+                selectedPassengerForMove = null
+            },
+            title = { Text("Move Passenger") },
+            text = {
+                Column {
+                    Text(text = passenger.name ?: "")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    dynamicAvailableTrips.filter { it != selectedTripTab }.forEach { trip ->
+                        Button(
+                            onClick = {
+                                swapPassengerToTrip(
+                                    passengerId = passenger.id ?: "",
+                                    destinationTrip = trip
+                                )
+                                selectedPassengerForMove = null
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Move To Trip $trip")
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
+    generatedAssignmentCode?.let { code ->
+        AlertDialog(
+            onDismissRequest = { generatedAssignmentCode = null },
+            title = { Text("Trip Assignment Code") },
+            text = {
+                Text(code)
+            },
+            confirmButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(
+                                Context.CLIPBOARD_SERVICE
+                            ) as ClipboardManager
+                            clipboard.setPrimaryClip(
+                                ClipData.newPlainText(
+                                    "Trip Code",
+                                    code
+                                )
+                            )
+                            Toast.makeText(context, "Code Copied", Toast.LENGTH_SHORT).show()
+                        }
+                    ) {
+                        Text("COPY")
+                    }
+                    TextButton(
+                        onClick = {
+                            val shareIntent = Intent(
+                                Intent.ACTION_SEND
+                            ).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    """Trip Assignment Code $code Open ZIPPO → Join Assigned Trip → Enter this code""".trimIndent()
+                                )
+                            }
+                            context.startActivity(
+                                Intent.createChooser(shareIntent, "Share Code")
+                            )
+                        }
+                    ) {
+                        Text("SHARE")
+                    }
+                    TextButton(
+                        onClick = {
+                            generatedAssignmentCode = null
+                        }
+                    ) {
+                        Text("CLOSE")
+                    }
+                }
+            }
+        )
+    }
+    if (showJoinTripDialog) {
+        AlertDialog(
+            onDismissRequest = { showJoinTripDialog = false },
+            title = { Text("Join Assigned Trip") },
+            text = {
+                OutlinedTextField(
+                    value = assignmentCodeInput,
+                    onValueChange = {
+                        assignmentCodeInput = it.uppercase()
+                    },
+                    label = {
+                        Text("Assignment Code")
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            try {
+                                val response = apiService.joinTripByCode(
+                                    driverId = sessionManager.getDriverId() ?: "",
+                                    request = JoinTripByCodeRequest(assignmentCodeInput)
+                                )
+                                Toast.makeText(
+                                    context,
+                                    "Joined Trip ${response.tripNumber}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                showJoinTripDialog = false
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Invalid Code", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                ) {
+                    Text("JOIN")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showJoinTripDialog = false }
+                ) {
+                    Text("CANCEL")
+                }
+            }
+        )
     }
 }
 
@@ -929,4 +1162,5 @@ fun sendFreeWhatsAppIntent(context: Context, phoneNumber: String, messageText: S
     } catch (e: Exception) {
         Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
     }
+
 }
