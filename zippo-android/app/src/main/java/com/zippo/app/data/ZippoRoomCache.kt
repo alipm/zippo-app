@@ -18,7 +18,9 @@ data class LocalPassengerEntity(
     val destLat: Double,
     val destLng: Double,
     val phoneNumber: String,
-    val address: String
+    val address: String,
+    val profileImageBase64: String,
+    val remarks: String? = ""
 )
 
 // 🟢 2. DATA ACCESS OBJECT (DAO Interface layer)

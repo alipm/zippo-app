@@ -41,6 +41,12 @@ interface ZippoApiService {
         @Body request: BuildRosterRequest
     ): RosterApiResponse
 
+    @POST("trips/mark-attendance")
+    suspend fun markAttendance(
+        @Header("x-driver-id") driverId: String,
+        @Body request: MarkAttendanceRequest
+    ): AttendanceApiResponse
+
     // 🟢 NEW ENDPOINT 1: Fetch consolidated monthly invoicing arrays
     @GET("payments/ledger-summary")
     suspend fun fetchFinancialLedger(
@@ -92,12 +98,59 @@ interface ZippoApiService {
         driverId: String
     ): List<String>
 
+    @POST("trips/swap-passenger")
+    suspend fun swapPassenger(
+        @Header("x-driver-id") driverId: String,
+        @Body request: SwapPassengerRequest
+    ): SwapPassengerResponse
+
+    @POST("drivers/login")
+    suspend fun loginDriver(
+        @Body request: DriverLoginRequest
+    ): DriverLoginResponse
+
+    @POST("trips/generate-assignment-code")
+    suspend fun generateAssignmentCode(
+        @Header("x-driver-id") driverId: String,
+        @Body request: GenerateAssignmentCodeRequest
+    ): GenerateAssignmentCodeResponse
+
+    @POST("trips/join-trip-by-code")
+    suspend fun joinTripByCode(
+        @Header("x-driver-id") driverId: String,
+        @Body request: JoinTripByCodeRequest
+    ): JoinTripByCodeResponse
+
+    @GET("trips/assigned")
+    suspend fun getAssignedTrips(
+        @Header("x-driver-id")
+        driverId: String
+    ): List<TripSegmentResponse>
+
+    @POST("drivers/register")
+    suspend fun registerDriver(
+        @Body request: RegisterDriverRequest
+    ): Any
+
+    @POST("drivers/forgot-password")
+    suspend fun forgotPassword(
+        @Body request: ForgotPasswordRequest
+    ): Any
+
+    @POST("drivers/reset-password")
+    suspend fun resetPassword(
+        @Body request: ResetPasswordRequest
+    ): Any
+
     companion object {
 
         fun create(): ZippoApiService {
             // 1. Build an OkHttpClient containing our cold-start countdown interceptor
             val okHttpClient = OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS) // Keeps socket open long enough for Render to boot
+                .connectTimeout(
+                    60,
+                    TimeUnit.SECONDS
+                ) // Keeps socket open long enough for Render to boot
                 .readTimeout(60, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .addInterceptor(RenderColdStartInterceptor()) // <-- Intercepts and monitors live request latencies

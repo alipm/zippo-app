@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BuildRosterDto } from './dto/build-roster.dto.js';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class TripsService {
@@ -15,10 +16,10 @@ export class TripsService {
     const { date, shift, customTripSizes } = dto;
     const shiftFilter = shift === 'MORNING' ? 'MORNING' : 'EVENING';
 
-    // 🟢 FIXED: The system now reads the dynamic driver parameter explicitly passed into the controller method context 
+    // 🟢 FIXED: The system now reads the dynamic driver parameter explicitly passed into the controller method context
     // instead of defaulting to a static fallback string tracker profile.
     const activeDriverId = driverId || '60d0fe4f5311236168410d11';
-    
+
     // 1. Fetch active passengers matching this shift contract
     const passengers = await this.passengerModel.find({
       driverId,
@@ -155,6 +156,120 @@ export class TripsService {
     }
     return sortedIds;
   }
+
+  async markAttendance(driverId: string, dto: any) {
+    const existingLog = await this.attendanceModel.findOne({
+      passengerId: new Types.ObjectId(dto.passengerId),
+      date: dto.date,
+      driverId,
+    });
+
+    if (existingLog) {
+      if (dto.shift === 'MORNING') {
+        existingLog.morningStatus = dto.status;
+      } else {
+        existingLog.eveningStatus = dto.status;
+      }
+
+      return existingLog.save();
+    }
+
+    const attendance = new this.attendanceModel({
+      driverId,
+      passengerId: dto.passengerId,
+      date: dto.date,
+      morningStatus: dto.shift === 'MORNING' ? dto.status : 'PENDING',
+      eveningStatus: dto.shift === 'EVENING' ? dto.status : 'PENDING',
+    });
+
+    return attendance.save();
+  }
+
+  async swapPassenger(driverId: string, dto: any) {
+    const sourceTrip = await this.tripSegmentModel.findOne({
+      ownerDriverId: driverId,
+      date: dto.date,
+      shift: dto.shift,
+      tripNumber: dto.sourceTripNumber,
+    });
+
+    const destinationTrip = await this.tripSegmentModel.findOne({
+      ownerDriverId: driverId,
+      date: dto.date,
+      shift: dto.shift,
+      tripNumber: dto.destinationTripNumber,
+    });
+
+    if (!sourceTrip || !destinationTrip) {
+      throw new Error('Trip not found');
+    }
+
+    sourceTrip.passengerIds = sourceTrip.passengerIds.filter(
+      (id: { toString: () => any }) => id.toString() !== dto.passengerId,
+    );
+
+    destinationTrip.passengerIds.push(dto.passengerId);
+
+    await sourceTrip.save();
+    await destinationTrip.save();
+
+    return {
+      success: true,
+    };
+  }
+
+  async generateAssignmentCode(driverId: string, dto: any) {
+    const trip = await this.tripSegmentModel.findOne({
+      ownerDriverId: driverId,
+      tripNumber: dto.tripNumber,
+      date: dto.date,
+      shift: dto.shift,
+    });
+
+    if (!trip) {
+      throw new Error('Trip not found');
+    }
+
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    trip.assignmentCode = code;
+    trip.isDelegated = true;
+
+    await trip.save();
+
+    return {
+      success: true,
+      code,
+    };
+  }
+
+  async joinTripByCode(driverId: string, dto: any) {
+    const trip = await this.tripSegmentModel.findOne({
+      assignmentCode: dto.assignmentCode,
+      isDelegated: true,
+    });
+
+    if (!trip) {
+      throw new Error('Invalid code');
+    }
+
+    trip.assignedDriverId = driverId;
+
+    await trip.save();
+
+    return {
+      success: true,
+      tripNumber: trip.tripNumber,
+    };
+  }
+
+  async getAssignedTrips(driverId: string) {
+
+  return this.tripSegmentModel.find({
+    assignedDriverId: driverId,
+    ownerDriverId: { $ne: driverId },
+  });
+}
 
   // Inject this execution module directly at the base of your TripsService class definitions
   async seedMockPassengersCollection(driverId: string) {

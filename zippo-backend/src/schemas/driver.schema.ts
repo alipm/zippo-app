@@ -9,11 +9,27 @@ export class Driver extends Document {
   @Prop({ required: true, unique: true })
   phoneNumber: string;
 
+  @Prop({ required: true, unique: true })
+  email: string;
+
+  @Prop()
+  vehicleNumber?: string;
+
+  @Prop({ required: true })
+  passwordHash: string;
+
+  @Prop()
+  resetToken?: string;
+
+  @Prop()
+  resetTokenExpiry?: Date;
+  
   @Prop({ required: true, default: true })
   isActive: boolean;
 
   @Prop({ type: Object, default: { lat: 17.4344, lng: 78.5562 } }) // Defaults to your main Nacharam staging coordinate hub
   lastKnownLocation: { lat: number; lng: number };
+
 }
 
 export const DriverSchema = SchemaFactory.createForClass(Driver);

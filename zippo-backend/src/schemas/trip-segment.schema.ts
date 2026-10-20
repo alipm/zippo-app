@@ -23,6 +23,12 @@ export class TripSegment extends Document {
   
   @Prop({ required: true, enum: ['ASSIGNED', 'ACCEPTED', 'ACTIVE', 'COMPLETED'], default: 'ASSIGNED' })
   status: string;
+
+  @Prop()
+  assignmentCode?: string;
+
+  @Prop({ default: false })
+  isDelegated?: boolean;
 }
 
 export const TripSegmentSchema = SchemaFactory.createForClass(TripSegment);

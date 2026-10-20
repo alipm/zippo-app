@@ -95,4 +95,28 @@ object Utils {
             ""
         }
     }
+
+    fun generateTripSizeMap(
+        totalPassengers: Int,
+        capacity: Int
+    ): Map<String, Int> {
+
+        val result = mutableMapOf<String, Int>()
+
+        var remaining = totalPassengers
+        var tripNumber = 1
+
+        while (remaining > 0) {
+
+            val count =
+                minOf(capacity, remaining)
+
+            result[tripNumber.toString()] = count
+
+            remaining -= count
+            tripNumber++
+        }
+
+        return result
+    }
 }

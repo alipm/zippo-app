@@ -47,6 +47,7 @@ import com.zippo.app.model.PassengerFormState
 import com.zippo.app.ui.onboarding.components.PassengerCard
 import com.zippo.app.ui.theme.*
 import com.zippo.app.utils.AppConstants
+import com.zippo.app.utils.SessionManager
 import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -70,6 +71,7 @@ fun OnboardingScreen() {
     var isLoaderActive by remember { mutableStateOf(false) }
     var passengerToDelete by remember { mutableStateOf<PassengerResponse?>(null) }
     var selectedPassenger by remember { mutableStateOf<PassengerResponse?>(null) }
+    val sessionManager = remember { SessionManager(context) }
 
     fun resetForm() {
         formState = PassengerFormState()
@@ -80,7 +82,7 @@ fun OnboardingScreen() {
         coroutineScope.launch {
             isLoaderActive = true
             try {
-                val responseList = repository.getPassengers(driverId = AppConstants.DEMO_DRIVER_ID)
+                val responseList = repository.getPassengers(driverId = sessionManager.getDriverId() ?: "")
                 registeredList = responseList
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -165,11 +167,11 @@ fun OnboardingScreen() {
 
                 if (editingPassengerId == null) {
                     repository.createPassenger(
-                        driverId = AppConstants.DEMO_DRIVER_ID, request = payload
+                        driverId = sessionManager.getDriverId() ?: "", request = payload
                     )
                 } else {
                     repository.updatePassenger(
-                        driverId = AppConstants.DEMO_DRIVER_ID,
+                        driverId = sessionManager.getDriverId() ?: "",
                         passengerId = editingPassengerId!!,
                         request = payload
                     )
@@ -192,7 +194,7 @@ fun OnboardingScreen() {
         coroutineScope.launch {
             try {
                 repository.deletePassenger(
-                    driverId = AppConstants.DEMO_DRIVER_ID, passengerId = passengerId
+                    driverId = sessionManager.getDriverId() ?: "", passengerId = passengerId
                 )
                 Toast.makeText(context, "Passenger deleted", Toast.LENGTH_SHORT).show()
                 loadRegisteredPassengersFromCloud()

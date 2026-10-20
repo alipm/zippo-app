@@ -39,12 +39,34 @@ This document serves as the absolute master engineering blueprint, systemic memo
 
 ### D. Collaborative Multi-Driver Trip Delegation Engine
 * **Operational Goal:** Allows a primary driver handling extreme volume (e.g., 5+ trips) to cleanly delegate specific trip partitions to peer drivers running the same application platform container.
-* **Architecture Implementation:** Tracks real-time active rosters via an independent `TripSegment` collection layer. The primary driver initiates a delegation dispatch request by inserting a colleague's unique telephone index node. 
+* **Architecture Implementation:** Tracks real-time active rosters via an independent `TripSegment` collection layer.  The primary driver initiates delegation by generating a unique Trip Assignment Code. The receiving driver joins the delegated trip by entering the assignment code in the application.
 * **Permission Isolation Matrix:** Accepting a delegated segment maps out the target coordinates, timeline buffers, and parent communication arrays onto the recipient's dashboard view. Recipient accounts are structurally barred via API guards from reading any master subscription records or ledger balances attached to the source route profile.
 
-### E. Supervisor Dashboard & Live Status Monitoring
-* When a primary driver delegates a `TripSegment` to a peer colleague, their dashboard flips into an operational **Supervisor Mode**.
-* The server uses WebSockets to stream state changes from the delegate's phone in real time back to the owner's dashboard screen. The owner sees live check-in ticks (`PICKED_UP`, `ABSENT`) and location coordinates of the delegated vehicle during transit.
+### E. Delegation Monitoring & Operational Dashboard
+
+* Every registered driver operates independently and maintains ownership of their own passenger, trip, attendance, and billing records.
+
+* When workload exceeds practical operating limits, a driver may delegate one or more generated TripSegments to another registered ZIPPO driver.
+
+* Delegation is accomplished through a unique Trip Assignment Code generated for the selected trip. The receiving driver enters the code through the application and joins the assigned trip.
+
+* The original driver remains the owner of the delegated trip and retains visibility into operational status updates.
+
+* Delegated drivers receive only operational execution data required to perform transportation activities, including:
+  - Passenger names
+  - Pickup and drop locations
+  - Contact numbers
+  - Attendance actions
+  - Navigation instructions
+
+* Delegated drivers are explicitly restricted from accessing:
+  - Ledger information
+  - Subscription billing records
+  - Invoice history
+  - Collection summaries
+  - Financial reports
+
+* Future platform versions may introduce a live operational dashboard displaying real-time delegated trip status, attendance updates, and location telemetry through WebSocket-based synchronization.
 
 ### F. Proximity Geofencing & 1000-Meter Smart Alerts
 * To eliminate prolonged roadside waiting times and continuous vehicle honking, the mobile application runs a background location tracking module via an Android `ForegroundService`.
@@ -152,3 +174,12 @@ and its functionality are as
 ## Available Months API
 ## WhatsApp Reminder Integration
 ## Current Ledger Status
+
+---
+
+## Pending Tasks 
+
+Holiday Module
+Subscription Module
+Supervisor Dashboard
+Advanced Analytics
