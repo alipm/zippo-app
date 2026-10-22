@@ -24,6 +24,7 @@ import com.zippo.app.ui.screens.LedgerScreen
 import com.zippo.app.ui.screens.LoginScreen
 import com.zippo.app.ui.screens.OnboardingScreen
 import com.zippo.app.ui.screens.RegisterScreen
+import com.zippo.app.ui.screens.ResetPasswordScreen
 import com.zippo.app.ui.theme.*
 import com.zippo.app.utils.SessionManager
 
@@ -32,23 +33,40 @@ fun MainNavigationHub() {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
-    val userRole = sessionManager.getDriverRole() ?: "DRIVER"
     var loggedIn by remember { mutableStateOf(sessionManager.isLoggedIn()) }
     var showForgotPassword by remember { mutableStateOf(false) }
     val isServerWakingUp by ServerStateManager.isServerWakingUp.collectAsState()
     var showRegisterScreen by remember { mutableStateOf(false) }
+    var showResetPassword by remember { mutableStateOf(false) }
 
     if (!loggedIn) {
-        if (showForgotPassword) {
+
+        if (showResetPassword) {
+            ResetPasswordScreen(
+                onBackToLogin = {
+                    showResetPassword = false
+                }
+            )
+        } else if (showForgotPassword) {
+
             ForgotPasswordScreen(
                 onBack = {
                     showForgotPassword = false
+                },
+                onOpenResetPassword = {
+                    showForgotPassword = false
+                    showResetPassword = true
                 }
             )
         } else if (showRegisterScreen) {
-            RegisterScreen {
-                showRegisterScreen = false
-            }
+            RegisterScreen(
+                onRegistrationSuccess = {
+                    showRegisterScreen = false
+                },
+                onBack = {
+                    showRegisterScreen = false
+                }
+            )
         } else {
             LoginScreen(
                 onLoginSuccess = {
@@ -79,11 +97,7 @@ fun MainNavigationHub() {
                             horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val items = if (userRole == "SUPERVISOR") {
-                                listOf(Screen.Home, Screen.Ledger, Screen.Onboarding)
-                            } else {
-                                listOf(Screen.Home)
-                            }
+                            val items = listOf(Screen.Home, Screen.Ledger, Screen.Onboarding)
 
                             items.forEach { screen ->
                                 val isSelected = currentScreen == screen
@@ -166,12 +180,15 @@ fun MainNavigationHub() {
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Connecting to server... It may take 30-60 seconds",
+                            text = """Starting ZIPPO services...
+                                Free hosting may take 30–60 seconds to wake up.
+                                Please wait...""".trimIndent(),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             textAlign = TextAlign.Center
                         )
+
                     }
                 }
             }

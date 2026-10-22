@@ -288,7 +288,7 @@ fun OnboardingScreen() {
                     .padding(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Row(
@@ -405,6 +405,7 @@ fun OnboardingScreen() {
                     .fillMaxSize()
                     .background(DarkChassis)
                     .verticalScroll(rememberScrollState())
+                    .imePadding()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -676,7 +677,8 @@ fun OnboardingScreen() {
                     .fillMaxSize()
                     .background(DarkChassis)
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(

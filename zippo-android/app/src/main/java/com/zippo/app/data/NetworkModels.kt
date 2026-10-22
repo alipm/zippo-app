@@ -133,7 +133,6 @@ data class DriverProfile(
     val name: String,
     val phoneNumber: String,
     val vehicleNumber: String,
-    val role: String
 )
 
 data class GenerateAssignmentCodeRequest(

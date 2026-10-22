@@ -2,6 +2,7 @@ package com.zippo.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,9 @@ import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.SurfaceGray
 import com.zippo.app.utils.SessionManager
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.zippo.app.utils.Utils
 
 @Composable
 fun LoginScreen(
@@ -31,23 +35,26 @@ fun LoginScreen(
     val sessionManager = remember { SessionManager(context) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Text(text = "ZIPPO", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Text(text = "ZIPPO - Smart Transport Management", fontSize = 32.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
             value = email,
             onValueChange = {
-                email = it
+                email = it.trim()
             },
             label = {
                 Text("Email")
@@ -66,7 +73,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = {
-                password = it
+                password = it.trim()
             },
             label = {
                 Text("Password")
@@ -84,7 +91,10 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            enabled = !isLoading,
             onClick = {
+
                 if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                     Toast.makeText(context, "Please enter valid email", Toast.LENGTH_SHORT).show()
                     return@Button
@@ -93,7 +103,13 @@ fun LoginScreen(
                     Toast.makeText(context, "Please enter password", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
+                if (!Utils.isInternetAvailable(context)) {
+                    Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
                 coroutineScope.launch {
+                    isLoading = true
                     try {
                         val response = apiService.loginDriver(
                             DriverLoginRequest(
@@ -104,8 +120,7 @@ fun LoginScreen(
 
                         sessionManager.saveDriverSession(
                             driverId = response.data._id,
-                            driverName = response.data.name,
-                            role = response.data.role
+                            driverName = response.data.name
                         )
 
                         Toast.makeText(context, "Welcome ${response.data.name}", Toast.LENGTH_SHORT)
@@ -113,26 +128,50 @@ fun LoginScreen(
 
                         onLoginSuccess()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Login Failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Invalid Email or Password", Toast.LENGTH_SHORT).show()
+                    } finally {
+                        isLoading = false
                     }
                 }
             }
         ) {
-            Text("LOGIN")
-        }
-
-        TextButton(
-            onClick = { onRegisterClick() }
-        ) {
-            Text("Register New Driver")
-        }
-
-        TextButton(
-            onClick = {
-                onForgotPasswordClick()
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("LOGIN")
             }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Forgot Password?")
+
+            TextButton(
+                onClick = {
+                    onRegisterClick()
+                }
+            ) {
+                Text(
+                    text = "Register New Driver",
+                    color = Color.LightGray
+                )
+            }
+
+            TextButton(
+                onClick = {
+                    onForgotPasswordClick()
+                }
+            ) {
+                Text(
+                    text = "Forgot Password?",
+                    color = Color.LightGray
+                )
+            }
         }
     }
 }

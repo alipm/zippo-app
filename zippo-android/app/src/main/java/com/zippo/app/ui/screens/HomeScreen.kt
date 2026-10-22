@@ -80,7 +80,6 @@ fun HomeScreen() {
 
     var generatedAssignmentCode by remember { mutableStateOf<String?>(null) }
     val sessionManager = remember { SessionManager(context) }
-    val userRole = sessionManager.getDriverRole() ?: "DRIVER"
 
 //    val parentAlertReceiver = remember {
 //        object : android.content.BroadcastReceiver() {
@@ -392,9 +391,6 @@ fun HomeScreen() {
         ) {
             Text(
                 text = "Driver: ${sessionManager.getDriverName()}", color = Color.White
-            )
-            Text(
-                text = "Role: ${sessionManager.getDriverRole()}", color = YellowAuto
             )
             TextButton(
                 onClick = {

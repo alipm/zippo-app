@@ -2,6 +2,8 @@ package com.zippo.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,6 +13,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.zippo.app.data.ResetPasswordRequest
 import com.zippo.app.data.ZippoApiService
+import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
 
 @Composable
@@ -21,25 +24,17 @@ fun ResetPasswordScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val apiService = remember {
-        ZippoApiService.create()
-    }
-
-    var token by remember {
-        mutableStateOf("")
-    }
-
-    var password by remember {
-        mutableStateOf("")
-    }
-
-    var confirmPassword by remember {
-        mutableStateOf("")
-    }
+    val apiService = remember { ZippoApiService.create() }
+    var token by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(16.dp),
 
         verticalArrangement = Arrangement.Center,
@@ -56,7 +51,7 @@ fun ResetPasswordScreen(
         OutlinedTextField(
             value = token,
             onValueChange = {
-                token = it
+                token = it.trim()
             },
             label = {
                 Text("Reset Token")
@@ -69,7 +64,7 @@ fun ResetPasswordScreen(
         OutlinedTextField(
             value = password,
             onValueChange = {
-                password = it
+                password = it.trim()
             },
             label = {
                 Text("New Password")
@@ -84,7 +79,7 @@ fun ResetPasswordScreen(
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = {
-                confirmPassword = it
+                confirmPassword = it.trim()
             },
             label = {
                 Text("Confirm Password")
@@ -97,43 +92,30 @@ fun ResetPasswordScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
+            enabled = !isLoading,
             onClick = {
-
                 if (token.isBlank()) {
-
-                    Toast.makeText(
-                        context,
-                        "Enter Token",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
+                    Toast.makeText(context, "Enter Token", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 if (password.isBlank()) {
 
-                    Toast.makeText(
-                        context,
-                        "Enter Password",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
+                    Toast.makeText(context, "Enter Password", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 if (password != confirmPassword) {
 
-                    Toast.makeText(
-                        context,
-                        "Passwords do not match",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
+                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
-
+                if (!Utils.isInternetAvailable(context)) {
+                    Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
                 coroutineScope.launch {
-
+                    isLoading = true
                     try {
 
                         apiService.resetPassword(
@@ -143,26 +125,23 @@ fun ResetPasswordScreen(
                             )
                         )
 
-                        Toast.makeText(
-                            context,
-                            "Password Updated Successfully",
-                            Toast.LENGTH_LONG
-                        ).show()
-
+                        Toast.makeText(context, "Password Updated Successfully", Toast.LENGTH_LONG)
+                            .show()
                         onBackToLogin()
-
                     } catch (e: Exception) {
-
-                        Toast.makeText(
-                            context,
-                            "Invalid Token",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(context, "Invalid Token", Toast.LENGTH_LONG).show()
+                    } finally {
+                        isLoading = false
                     }
                 }
             }
         ) {
-            Text("RESET PASSWORD")
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Text("RESET PASSWORD")
+            }
+
         }
 
         Spacer(modifier = Modifier.height(10.dp))
