@@ -3,6 +3,8 @@ package com.zippo.app.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,47 +18,48 @@ import androidx.compose.ui.unit.sp
 import com.zippo.app.data.RegisterDriverRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.SurfaceGray
+import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
+
 
 @Composable
 fun RegisterScreen(
-    onRegistrationSuccess: () -> Unit
+    onRegistrationSuccess: () -> Unit,
+    onBack: () -> Unit
 ) {
 
+    BackHandler { onBack() }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val apiService = remember {
-        ZippoApiService.create()
-    }
+    val apiService = remember { ZippoApiService.create() }
 
-    var name by remember {
-        mutableStateOf("")
-    }
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+    var vehicleNumber by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
-    var email by remember {
-        mutableStateOf("")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        TextButton(
+            onClick = {
+                onBack()
+            }
+        ) {
+            Text("← Back")
+        }
     }
-
-    var phoneNumber by remember {
-        mutableStateOf("")
-    }
-
-    var vehicleNumber by remember {
-        mutableStateOf("")
-    }
-
-    var password by remember {
-        mutableStateOf("")
-    }
-
-    var confirmPassword by remember {
-        mutableStateOf("")
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -70,7 +73,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = name,
             onValueChange = {
-                name = it
+                name = it.trim()
             },
             label = {
                 Text("Name")
@@ -87,7 +90,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = email,
             onValueChange = {
-                email = it
+                email = it.trim()
             },
             label = {
                 Text("Email")
@@ -104,7 +107,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = phoneNumber,
             onValueChange = {
-                phoneNumber = it
+                phoneNumber = it.trim()
             },
             label = {
                 Text("Phone Number")
@@ -121,7 +124,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = vehicleNumber,
             onValueChange = {
-                vehicleNumber = it
+                vehicleNumber = it.trim()
             },
             label = {
                 Text("Vehicle Number (Optional)")
@@ -138,7 +141,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = password,
             onValueChange = {
-                password = it
+                password = it.trim()
             },
             label = {
                 Text("Password")
@@ -156,7 +159,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = {
-                confirmPassword = it
+                confirmPassword = it.trim()
             },
             label = {
                 Text("Confirm Password")
@@ -172,57 +175,40 @@ fun RegisterScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(
+            enabled = !isLoading,
             onClick = {
-
                 if (name.isBlank()) {
-                    Toast.makeText(
-                        context,
-                        "Enter name",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Enter name", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 if (email.isBlank()) {
-                    Toast.makeText(
-                        context,
-                        "Enter email",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Enter email", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 if (phoneNumber.isBlank()) {
-                    Toast.makeText(
-                        context,
-                        "Enter phone number",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Enter phone number", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 if (password.isBlank()) {
-                    Toast.makeText(
-                        context,
-                        "Enter password",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Enter password", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 if (password != confirmPassword) {
-                    Toast.makeText(
-                        context,
-                        "Passwords do not match",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
+                if (!Utils.isInternetAvailable(context)) {
+                    Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
                 coroutineScope.launch {
-
+                    isLoading = true
                     try {
-
                         apiService.registerDriver(
                             RegisterDriverRequest(
                                 name = name,
@@ -233,27 +219,22 @@ fun RegisterScreen(
                             )
                         )
 
-                        Toast.makeText(
-                            context,
-                            "Registration Successful",
-                            Toast.LENGTH_LONG
-                        ).show()
-
+                        Toast.makeText(context, "Registration Successful", Toast.LENGTH_LONG).show()
                         onRegistrationSuccess()
-
                     } catch (e: Exception) {
-
-                        Toast.makeText(
-                            context,
-                            "Registration Failed",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(context, "Registration Failed", Toast.LENGTH_LONG).show()
+                    } finally {
+                        isLoading = false
                     }
                 }
             },
             modifier = Modifier.width(180.dp)
         ) {
-            Text("REGISTER")
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Text("REGISTER")
+            }
         }
     }
 }

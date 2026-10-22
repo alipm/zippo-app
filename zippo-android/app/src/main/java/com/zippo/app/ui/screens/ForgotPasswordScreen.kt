@@ -2,6 +2,8 @@ package com.zippo.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,27 +14,27 @@ import androidx.compose.ui.unit.dp
 import com.zippo.app.data.ForgotPasswordRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.SurfaceGray
+import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun ForgotPasswordScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenResetPassword: () -> Unit
 ) {
-
+    BackHandler { onBack() }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-
-    val apiService = remember {
-        ZippoApiService.create()
-    }
-
-    var email by remember {
-        mutableStateOf("")
-    }
+    var isLoading by remember { mutableStateOf(false) }
+    val apiService = remember { ZippoApiService.create() }
+    var email by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -40,14 +42,12 @@ fun ForgotPasswordScreen(
 
         Text("Forgot Password")
 
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         OutlinedTextField(
             value = email,
             onValueChange = {
-                email = it
+                email = it.trim()
             },
             label = {
                 Text("Email")
@@ -60,56 +60,51 @@ fun ForgotPasswordScreen(
                 unfocusedContainerColor = Color.White
             ),
         )
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
-
+        Spacer(modifier = Modifier.height(20.dp))
         Button(
+            enabled = !isLoading,
             onClick = {
-
+                if (!Utils.isInternetAvailable(context)) {
+                    Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
                 coroutineScope.launch {
-
+                    isLoading = true
                     try {
-
                         apiService.forgotPassword(
                             ForgotPasswordRequest(
                                 email = email
                             )
                         )
-
-                        Toast.makeText(
-                            context,
-                            "Reset email sent",
-                            Toast.LENGTH_LONG
-                        ).show()
-
+                        Toast.makeText(context, "If the email exists, password reset instructions have been sent.", Toast.LENGTH_LONG).show()
                         onBack()
-
                     } catch (e: Exception) {
-
-                        Toast.makeText(
-                            context,
-                            "Failed",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(context, "Failed", Toast.LENGTH_LONG).show()
+                    } finally {
+                        isLoading = false
                     }
                 }
             }
         ) {
-            Text("SEND EMAIL")
-        }
-
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
-
-        TextButton(
-            onClick = {
-                onBack()
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Text("SEND EMAIL")
             }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        TextButton(
+            onClick = { onBack() }
         ) {
             Text("Back To Login")
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        TextButton(
+            onClick = {
+                onOpenResetPassword()
+            }
+        ) {
+            Text("Open Reset Password")
         }
     }
 }

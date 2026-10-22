@@ -13,8 +13,9 @@ export class DriversService {
   ) {}
 
   async registerDriver(dto: any) {
+    const email = dto.email.trim().toLowerCase();
     const existingDriver = await this.driverModel.findOne({
-      email: dto.email,
+      email: email,
     });
 
     if (existingDriver) {
@@ -26,9 +27,8 @@ export class DriversService {
     const driver = new this.driverModel({
       name: dto.name,
       phoneNumber: dto.phoneNumber,
-      email: dto.email,
+      email: email,
       vehicleNumber: dto.vehicleNumber,
-      role: dto.role,
       passwordHash,
     });
 
@@ -36,8 +36,9 @@ export class DriversService {
   }
 
   async loginDriver(dto: any) {
+    const email = dto.email.trim().toLowerCase();
     const driver = await this.driverModel.findOne({
-      email: dto.email,
+      email: email,
       isActive: true,
     });
 
@@ -92,8 +93,43 @@ export class DriversService {
 
     await this.transporter.sendMail({
       to: driver.email,
+
       subject: 'ZIPPO Password Reset',
-      text: `Your ZIPPO password reset token: ${token} Valid for 30 minutes.`,
+
+      html: `
+   <div style="font-family: Arial, sans-serif;">
+      <h2>ZIPPO Password Reset</h2>
+
+      <p>Hello ${driver.name},</p>
+
+      <p>
+      A request was received to reset your ZIPPO account password.
+      </p>
+
+      <p>
+      Use the following reset token:
+      </p>
+
+      <h3 style="color:#1976D2;">
+      ${token}
+      </h3>
+
+      <p>
+      This token is valid for 30 minutes.
+      </p>
+
+      <p>
+      If you did not request this password reset,
+      you can safely ignore this email.
+      </p>
+
+      <br/>
+
+      <p>
+      ZIPPO Transport Management System
+      </p>
+  </div>
+  `,
     });
 
     return {
