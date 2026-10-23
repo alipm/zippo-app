@@ -49,7 +49,7 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(onLogout: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val apiService = remember { ZippoApiService.create() }
@@ -389,16 +389,35 @@ fun HomeScreen() {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Driver: ${sessionManager.getDriverName()}", color = Color.White
-            )
-            TextButton(
-                onClick = {
-                    sessionManager.clearSession()
-                }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = SurfaceGray
+                )
             ) {
-                Text("Logout")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "👤 ${sessionManager.getDriverName()}",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(
+                        onClick = {
+                            sessionManager.clearSession()
+                            onLogout()
+                        }
+                    ) {
+                        Text("Logout")
+                    }
+                }
             }
+
             if (tripStarted) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -856,19 +875,27 @@ fun HomeScreen() {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Button(
-                    onClick = {
-                        generateTripCode()
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Generate Trip Code")
-                }
-                Button(
-                    onClick = {
-                        showJoinTripDialog = true
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            generateTripCode()
+                        }
+                    ) {
+                        Text("Delegate Trip $selectedTripTab")
                     }
-                ) {
-                    Text("Join Assigned Trip")
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            showJoinTripDialog = true
+                        }
+                    ) {
+                        Text("Join Assigned Trip")
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // 🟢 WITH THIS DYNAMIC LOOP MATRIX:

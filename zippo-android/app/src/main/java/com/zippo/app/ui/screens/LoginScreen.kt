@@ -2,6 +2,7 @@ package com.zippo.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,10 +18,8 @@ import com.zippo.app.data.DriverLoginRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.SurfaceGray
 import com.zippo.app.utils.SessionManager
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import com.zippo.app.utils.Utils
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -47,10 +46,22 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Text(text = "ZIPPO - Smart Transport Management", fontSize = 32.sp, fontWeight = FontWeight.Bold)
-
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "ZIPPO",
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Black
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Smart Transport Management",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+        }
         Spacer(modifier = Modifier.height(24.dp))
-
         OutlinedTextField(
             value = email,
             onValueChange = {
@@ -91,7 +102,9 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             enabled = !isLoading,
             onClick = {
 
@@ -128,7 +141,8 @@ fun LoginScreen(
 
                         onLoginSuccess()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Invalid Email or Password", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Invalid Email or Password", Toast.LENGTH_SHORT)
+                            .show()
                     } finally {
                         isLoading = false
                     }
@@ -144,13 +158,12 @@ fun LoginScreen(
                 Text("LOGIN")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             TextButton(
                 onClick = {
                     onRegisterClick()
@@ -158,7 +171,7 @@ fun LoginScreen(
             ) {
                 Text(
                     text = "Register New Driver",
-                    color = Color.LightGray
+                    color = SurfaceGray
                 )
             }
 
@@ -169,7 +182,7 @@ fun LoginScreen(
             ) {
                 Text(
                     text = "Forgot Password?",
-                    color = Color.LightGray
+                    color = SurfaceGray
                 )
             }
         }
