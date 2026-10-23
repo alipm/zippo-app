@@ -93,8 +93,11 @@ export class DriversService {
     driver.resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
     await driver.save();
 
-    await this.resend.emails.send({
-      from: 'ZIPPO <noreply@zippo.app>',
+    console.log('FORGOT PASSWORD REQUEST:', dto.email);
+    console.log('DRIVER FOUND:', !!driver);
+
+    const emailResponse = await this.resend.emails.send({
+      from: 'ZIPPO <onboarding@resend.dev>',
       to: driver.email,
       subject: 'Your ZIPPO Verification Code',
       html: `
@@ -140,6 +143,7 @@ ZIPPO Transport Management
 `,
     });
 
+    console.log('EMAIL RESPONSE:', emailResponse);
     return {
       success: true,
     };
