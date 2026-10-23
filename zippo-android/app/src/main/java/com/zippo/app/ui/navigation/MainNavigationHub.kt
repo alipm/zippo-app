@@ -139,7 +139,10 @@ fun MainNavigationHub() {
                         .background(DarkChassis)
                 ) {
                     when (currentScreen) {
-                        is Screen.Home -> HomeScreen()
+                        is Screen.Home -> HomeScreen(onLogout = {
+                            loggedIn = false
+                            currentScreen = Screen.Home
+                        })
                         is Screen.Ledger -> LedgerScreen()
                         is Screen.Onboarding -> OnboardingScreen()
                     }
@@ -180,9 +183,7 @@ fun MainNavigationHub() {
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = """Starting ZIPPO services...
-                                Free hosting may take 30–60 seconds to wake up.
-                                Please wait...""".trimIndent(),
+                            text = """Starting ZIPPO services... Free hosting may take 30–60 seconds to wake up. Please wait...""".trimIndent(),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,

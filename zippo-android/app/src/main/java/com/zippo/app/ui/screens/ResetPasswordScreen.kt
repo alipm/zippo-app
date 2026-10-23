@@ -13,8 +13,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.zippo.app.data.ResetPasswordRequest
 import com.zippo.app.data.ZippoApiService
+import com.zippo.app.ui.theme.SurfaceGray
 import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun ResetPasswordScreen(
@@ -54,9 +56,15 @@ fun ResetPasswordScreen(
                 token = it.trim()
             },
             label = {
-                Text("Reset Token")
+                Text("Verification Code")
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = SurfaceGray,
+                unfocusedTextColor = SurfaceGray,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -69,9 +77,14 @@ fun ResetPasswordScreen(
             label = {
                 Text("New Password")
             },
-            visualTransformation =
-            PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = SurfaceGray,
+                unfocusedTextColor = SurfaceGray,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            ),
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -86,7 +99,13 @@ fun ResetPasswordScreen(
             },
             visualTransformation =
             PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = SurfaceGray,
+                unfocusedTextColor = SurfaceGray,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -141,17 +160,23 @@ fun ResetPasswordScreen(
             } else {
                 Text("RESET PASSWORD")
             }
-
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        TextButton(
-            onClick = {
-                onBackToLogin()
-            }
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Back To Login")
+            TextButton(
+                onClick = {
+                    onBackToLogin()
+                }
+            ) {
+                Text(
+                    text = "Back To Login",
+                    color = SurfaceGray
+                )
+            }
         }
     }
 }

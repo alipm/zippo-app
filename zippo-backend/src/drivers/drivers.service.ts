@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class DriversService {
@@ -56,7 +55,13 @@ export class DriversService {
   }
 
   private transporter = nodemailer.createTransport({
-    service: 'gmail',
+    // host: 'smtp-relay.brevo.com',
+    // port: 587,
+    // secure: false,
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASSWORD,
@@ -64,14 +69,21 @@ export class DriversService {
   });
 
   async sendTestEmail() {
-    console.log("SMTP_EMAIL =", process.env.SMTP_EMAIL);
-    console.log("SMTP_PASSWORD EXISTS =", !!process.env.SMTP_PASSWORD);
-    await this.transporter.sendMail({
-      to: process.env.SMTP_EMAIL,
-      subject: 'ZIPPO Test',
-      text: 'Test email from ZIPPO',
-    });
-
+    console.log('SMTP_EMAIL =', process.env.SMTP_EMAIL);
+    console.log('SMTP_PASSWORD EXISTS =', !!process.env.SMTP_PASSWORD);
+    try {
+      await this.transporter.verify();
+      console.log('SMTP VERIFIED');
+      await this.transporter.sendMail({
+        to: process.env.SMTP_EMAIL,
+        subject: 'ZIPPO Test',
+        text: 'Test email from ZIPPO',
+      });
+      console.log('EMAIL SENT');
+    } catch (error) {
+      console.error('SMTP ERROR', JSON.stringify(error, null, 2));
+      throw error;
+    }
     return {
       success: true,
     };
@@ -94,10 +106,9 @@ export class DriversService {
     await driver.save();
 
     await this.transporter.sendMail({
+      from: 'ZIPPO <masoom117@gmail.com>',
       to: driver.email,
-
       subject: 'Your ZIPPO Verification Code',
-
       html: `
 <div style="font-family:Arial">
 

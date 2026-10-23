@@ -68,6 +68,15 @@ fun ForgotPasswordScreen(
                     Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
+                if (email.isBlank()) {
+                    Toast.makeText(context, "Please enter email", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    Toast.makeText(context, "Please enter valid email", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
                 coroutineScope.launch {
                     isLoading = true
                     try {
@@ -77,7 +86,7 @@ fun ForgotPasswordScreen(
                             )
                         )
                         Toast.makeText(context, "If the email exists, password reset instructions have been sent.", Toast.LENGTH_LONG).show()
-                        onBack()
+                        onOpenResetPassword()
                     } catch (e: Exception) {
                         Toast.makeText(context, "Failed", Toast.LENGTH_LONG).show()
                     } finally {
@@ -92,19 +101,22 @@ fun ForgotPasswordScreen(
                 Text("SEND EMAIL")
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
-        TextButton(
-            onClick = { onBack() }
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Back To Login")
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        TextButton(
-            onClick = {
-                onOpenResetPassword()
+            TextButton(
+                onClick = {
+                    onBack()
+                }
+            ) {
+                Text(
+                    text = "Back To Login",
+                    color = SurfaceGray
+                )
             }
-        ) {
-            Text("Open Reset Password")
         }
     }
 }
