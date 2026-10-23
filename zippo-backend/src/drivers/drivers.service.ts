@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class DriversService {
+  private resend = new Resend(process.env.RESEND_API_KEY);
+
   constructor(
     @InjectModel('Driver')
     private driverModel: Model<any>,
@@ -54,36 +56,22 @@ export class DriversService {
     return driver;
   }
 
-  private transporter = nodemailer.createTransport({
-    // host: 'smtp-relay.brevo.com',
-    // port: 587,
-    // secure: false,
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
-
   async sendTestEmail() {
-    console.log('SMTP_EMAIL =', process.env.SMTP_EMAIL);
-    console.log('SMTP_PASSWORD EXISTS =', !!process.env.SMTP_PASSWORD);
-    try {
-      await this.transporter.verify();
-      console.log('SMTP VERIFIED');
-      await this.transporter.sendMail({
-        to: process.env.SMTP_EMAIL,
-        subject: 'ZIPPO Test',
-        text: 'Test email from ZIPPO',
-      });
-      console.log('EMAIL SENT');
-    } catch (error) {
-      console.error('SMTP ERROR', JSON.stringify(error, null, 2));
-      throw error;
-    }
+    const result = await this.resend.emails.send({
+      from: 'onboarding@resend.dev',
+
+      to: 'masoom117@gmail.com',
+
+      subject: 'ZIPPO Test',
+
+      html: `
+        <h2>ZIPPO Test Email</h2>
+        <p>Email delivery is working.</p>
+      `,
+    });
+
+    console.log(result);
+
     return {
       success: true,
     };
@@ -105,28 +93,47 @@ export class DriversService {
     driver.resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
     await driver.save();
 
-    await this.transporter.sendMail({
-      from: 'ZIPPO <masoom117@gmail.com>',
+    await this.resend.emails.send({
+      from: 'ZIPPO <noreply@zippo.app>',
       to: driver.email,
       subject: 'Your ZIPPO Verification Code',
       html: `
-<div style="font-family:Arial">
+<div style="font-family:Arial,sans-serif">
 
 <h2>Password Reset Request</h2>
 
 <p>Hello ${driver.name},</p>
 
+<p>
+A request was received to reset your ZIPPO account password.
+</p>
+
 <p>Your verification code is:</p>
 
-<h1 style="color:#1976D2">${token}</h1>
+<h1 style="color:#1976D2;">
+${token}
+</h1>
 
 <p>
 This code is valid for 15 minutes.
 </p>
 
 <p>
-If you did not request this reset,
-please ignore this email.
+If you did not request this reset, please ignore this email.
+</p>
+
+<hr/>
+
+<p>
+Need help?
+</p>
+
+<p>
+Contact: masoom117@gmail.com / (Call : +91 8121242633 )
+</p>
+
+<p>
+ZIPPO Transport Management
 </p>
 
 </div>
