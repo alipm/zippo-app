@@ -64,6 +64,8 @@ export class DriversService {
   });
 
   async sendTestEmail() {
+    console.log("SMTP_EMAIL =", process.env.SMTP_EMAIL);
+    console.log("SMTP_PASSWORD EXISTS =", !!process.env.SMTP_PASSWORD);
     await this.transporter.sendMail({
       to: process.env.SMTP_EMAIL,
       subject: 'ZIPPO Test',
@@ -86,50 +88,38 @@ export class DriversService {
       };
     }
 
-    const token = uuidv4();
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
     driver.resetToken = token;
-    driver.resetTokenExpiry = new Date(Date.now() + 30 * 60 * 1000);
+    driver.resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
     await driver.save();
 
     await this.transporter.sendMail({
       to: driver.email,
 
-      subject: 'ZIPPO Password Reset',
+      subject: 'Your ZIPPO Verification Code',
 
       html: `
-   <div style="font-family: Arial, sans-serif;">
-      <h2>ZIPPO Password Reset</h2>
+<div style="font-family:Arial">
 
-      <p>Hello ${driver.name},</p>
+<h2>Password Reset Request</h2>
 
-      <p>
-      A request was received to reset your ZIPPO account password.
-      </p>
+<p>Hello ${driver.name},</p>
 
-      <p>
-      Use the following reset token:
-      </p>
+<p>Your verification code is:</p>
 
-      <h3 style="color:#1976D2;">
-      ${token}
-      </h3>
+<h1 style="color:#1976D2">${token}</h1>
 
-      <p>
-      This token is valid for 30 minutes.
-      </p>
+<p>
+This code is valid for 15 minutes.
+</p>
 
-      <p>
-      If you did not request this password reset,
-      you can safely ignore this email.
-      </p>
+<p>
+If you did not request this reset,
+please ignore this email.
+</p>
 
-      <br/>
-
-      <p>
-      ZIPPO Transport Management System
-      </p>
-  </div>
-  `,
+</div>
+`,
     });
 
     return {
