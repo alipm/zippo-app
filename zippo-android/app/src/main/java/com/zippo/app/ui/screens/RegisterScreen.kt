@@ -21,7 +21,9 @@ import com.zippo.app.ui.theme.SurfaceGray
 import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
-
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 @Composable
 fun RegisterScreen(
@@ -52,7 +54,7 @@ fun RegisterScreen(
                 onBack()
             }
         ) {
-            Text("← Back")
+            Text(text = "← Back", color = SurfaceGray)
         }
     }
     Column(
@@ -221,8 +223,27 @@ fun RegisterScreen(
 
                         Toast.makeText(context, "Registration Successful", Toast.LENGTH_LONG).show()
                         onRegistrationSuccess()
+                    } catch (e: HttpException) {
+                        val message =
+                            if (e.code() == 400)
+                                "Email or Phone Number already registered"
+                            else
+                                "Registration Failed"
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                message,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     } catch (e: Exception) {
-                        Toast.makeText(context, e.message ?: "Registration Failed", Toast.LENGTH_LONG).show()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                e.message ?: "Registration Failed",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     } finally {
                         isLoading = false
                     }

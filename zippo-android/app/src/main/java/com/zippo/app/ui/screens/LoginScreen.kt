@@ -1,7 +1,6 @@
 package com.zippo.app.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,7 +17,6 @@ import androidx.compose.ui.unit.sp
 import com.zippo.app.data.DriverLoginRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.SurfaceGray
-import com.zippo.app.ui.theme.YellowAuto
 import com.zippo.app.utils.SessionManager
 import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
@@ -178,23 +176,17 @@ fun LoginScreen(
                 )
             }
 
-            Text(
-                text = "Password Reset Support",
-                color = YellowAuto,
-                modifier = Modifier.clickable {
+            TextButton(
+                onClick = {
+//                    onForgotPasswordClick()
                     showPasswordSupportDialog = true
                 }
-            )
-//            TextButton(
-//                onClick = {
-//                    onForgotPasswordClick()
-//                }
-//            ) {
-//                Text(
-//                    text = "Password Reset Support",
-//                    color = SurfaceGray
-//                )
-//            }
+            ) {
+                Text(
+                    text = "Password Reset Support",
+                    color = SurfaceGray
+                )
+            }
         }
     }
 
