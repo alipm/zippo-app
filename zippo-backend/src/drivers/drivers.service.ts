@@ -20,7 +20,12 @@ export class DriversService {
     });
 
     if (existingDriver) {
-      throw new Error('Driver already exists');
+      if (existingDriver.email === email) {
+        throw new Error('Email already registered');
+      }
+      if (existingDriver.phoneNumber === dto.phoneNumber) {
+        throw new Error('Phone number already registered');
+      }
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);

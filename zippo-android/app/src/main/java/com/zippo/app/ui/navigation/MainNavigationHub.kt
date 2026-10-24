@@ -27,6 +27,9 @@ import com.zippo.app.ui.screens.RegisterScreen
 import com.zippo.app.ui.screens.ResetPasswordScreen
 import com.zippo.app.ui.theme.*
 import com.zippo.app.utils.SessionManager
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun MainNavigationHub() {
@@ -83,6 +86,7 @@ fun MainNavigationHub() {
     } else {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
+                contentWindowInsets = WindowInsets.safeDrawing,
                 bottomBar = {
                     // HIGH-CONTRAST CHASSIS FOOTER HUB (56dp Height layout bar structure)
                     Surface(
@@ -90,7 +94,8 @@ fun MainNavigationHub() {
                         tonalElevation = 8.dp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(64.dp)
+                            .navigationBarsPadding()
+                            .height(72.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
