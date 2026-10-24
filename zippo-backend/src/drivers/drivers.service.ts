@@ -16,8 +16,11 @@ export class DriversService {
   async registerDriver(dto: any) {
     const email = dto.email.trim().toLowerCase();
     const existingDriver = await this.driverModel.findOne({
-      email: email,
-    });
+  $or: [
+    { email: email },
+    { phoneNumber: dto.phoneNumber },
+  ],
+});
 
     if (existingDriver) {
       if (existingDriver.email === email) {
