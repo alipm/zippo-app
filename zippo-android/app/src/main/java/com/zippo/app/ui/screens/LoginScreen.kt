@@ -1,6 +1,7 @@
 package com.zippo.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.zippo.app.data.DriverLoginRequest
 import com.zippo.app.data.ZippoApiService
 import com.zippo.app.ui.theme.SurfaceGray
+import com.zippo.app.ui.theme.YellowAuto
 import com.zippo.app.utils.SessionManager
 import com.zippo.app.utils.Utils
 import kotlinx.coroutines.launch
@@ -35,6 +37,7 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var showPasswordSupportDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -175,16 +178,66 @@ fun LoginScreen(
                 )
             }
 
-            TextButton(
-                onClick = {
-                    onForgotPasswordClick()
+            Text(
+                text = "Password Reset Support",
+                color = YellowAuto,
+                modifier = Modifier.clickable {
+                    showPasswordSupportDialog = true
                 }
-            ) {
-                Text(
-                    text = "Forgot Password?",
-                    color = SurfaceGray
-                )
-            }
+            )
+//            TextButton(
+//                onClick = {
+//                    onForgotPasswordClick()
+//                }
+//            ) {
+//                Text(
+//                    text = "Password Reset Support",
+//                    color = SurfaceGray
+//                )
+//            }
         }
+    }
+
+    if (showPasswordSupportDialog) {
+
+        AlertDialog(
+            onDismissRequest = {
+                showPasswordSupportDialog = false
+            },
+
+            title = {
+                Text(
+                    text = "Password Reset Support"
+                )
+            },
+
+            text = {
+                Text(
+                    """
+Password reset via email is currently unavailable.
+
+For assistance, please contact:
+
+📧 Email:
+masoom117@gmail.com
+
+📞 Phone:
++91 8121242633
+
+ZIPPO Support Team
+                """.trimIndent()
+                )
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPasswordSupportDialog = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

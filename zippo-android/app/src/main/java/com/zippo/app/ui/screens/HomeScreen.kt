@@ -389,34 +389,6 @@ fun HomeScreen(onLogout: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = SurfaceGray
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "👤 ${sessionManager.getDriverName()}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    TextButton(
-                        onClick = {
-                            sessionManager.clearSession()
-                            onLogout()
-                        }
-                    ) {
-                        Text("Logout")
-                    }
-                }
-            }
 
             if (tripStarted) {
                 Card(
@@ -766,6 +738,34 @@ fun HomeScreen(onLogout: () -> Unit) {
 //                kotlin.math.ceil(activeRosterList.size.toDouble() / vehicleCapacity.toDouble())
 //                    .toInt()
             if (!tripStarted) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SurfaceGray
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "👤 ${sessionManager.getDriverName()}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(
+                            onClick = {
+                                sessionManager.clearSession()
+                                onLogout()
+                            }
+                        ) {
+                            Text("Logout")
+                        }
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -222,7 +222,7 @@ fun RegisterScreen(
                         Toast.makeText(context, "Registration Successful", Toast.LENGTH_LONG).show()
                         onRegistrationSuccess()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Registration Failed", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, e.message ?: "Registration Failed", Toast.LENGTH_LONG).show()
                     } finally {
                         isLoading = false
                     }
