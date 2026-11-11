@@ -1,0 +1,6 @@
+DATABASE_URL=mongodb+srv://masoom_dev:ZippoPass2633@cluster0.6ndemye.mongodb.net/?appName=Cluster0
+# SMTP_EMAIL=masoom117@gmail.com
+# SMTP_PASSWORD=sezcmmyltfjqvxst
+# SMTP_EMAIL=bfa179001@smtp-brevo.com
+# SMTP_PASSWORD=xsmtpsib-249efa900aa0787b1cf32f5795b937710da598bea323edc12204e309a1ceaec7-ZXADbu0F7S6dkL9L
+RESEND_API_KEY=re_GG6Vaak6_QEYh3MhkXE8R9L9z8SrWgSmB
