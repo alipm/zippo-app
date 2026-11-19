@@ -161,5 +161,29 @@ The application is designed as a micro-SaaS product for drivers.
 - Advanced analytics
 - WebSocket-based live trip status
 - Driver location tracking dashboard
+
+## Implementation Status
+
+### Implemented
+
+- Morning and evening shift management
+- Passenger attendance tracking
+- Capacity-based trip splitting
+- Manual passenger movement between trips
+- Trip delegation with access control
+- Proximity-based alerts
+- WhatsApp deep-link communication
+- Invoice-based financial ledger
+- Monthly invoice generation
+- Payment settlement workflow
+- Month-wise ledger history
+
+### Planned
+
+- Holiday management module
+- Subscription module
+- Supervisor dashboard
+- Advanced analytics
+- WebSocket-based live trip status
 - Automated payment reminders
 - Route optimisation suggestions
