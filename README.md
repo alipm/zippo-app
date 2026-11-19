@@ -23,6 +23,16 @@ Drivers often manage recurring routes using handwritten notes, WhatsApp messages
 
 ZIPPO digitises these workflows into a simple, mobile-first application.
 
+## 👨‍💻 What I Built
+
+- Designed and developed the Android application using Kotlin and Jetpack Compose.
+- Built the NestJS/TypeScript backend with MongoDB, REST APIs, JWT authentication, and role-based access control.
+- Implemented morning/evening shift management, attendance tracking, trip capacity splitting, and manual passenger swapping.
+- Developed trip delegation with assignment codes and restricted access to financial data.
+- Implemented proximity-based alerts, WhatsApp deep links, and native dialer integration.
+- Designed an invoice-based ledger with monthly invoicing, payment settlement, soft-delete strategy, and month-wise history.
+- Created the technical architecture, data model, API design principles, and product roadmap.
+  
 ## ✨ Key Features
 
 ### Route and Shift Management
@@ -91,14 +101,20 @@ ZIPPO digitises these workflows into a simple, mobile-first application.
 
 ## 📱 Screenshots
 
-| Register | Login | App Icon | Trip Planner |
+## 📱 Screenshots
 
-|  ![Registry](docs/screenshots/Register.png) | ![Login](docs/screenshots/Login.png) | ![Attendance](docs/screenshots/ic_launcher_foreground.png) | ![Trips](docs/screenshots/TripStartedScreen.png) |
+| Register | Login | ic_launcher_foreground.png | TripStartedScreen |
+|---|---|---|---|
+| ![Register](docs/screenshots/register.png) | ![Login](docs/screenshots/login.png) | ![App Icon](docs/screenshots/ic_launcher_foreground.png) | ![Trip Planner](docs/screenshots/TripStartedScreen.png) |
 
-| Billing | Route Planner |  | Passenger Update |
+| Billing | Route Planner | Passenger Update |
+|---|---|---|
+| ![Billing](docs/screenshots/BillingScreen.png) | ![Route Planner](docs/screenshots/route-planner.png) | ![Passenger Update](docs/screenshots/passenger-update.png) |
 
-| ![Billing](docs/screenshots/BillingScreen.png) | ![RoutePlanner](docs/screenshots/RoutePlanner.png) | | ![Trips](docs/screenshots/PassengerupdateScreen.png) | 
-   
+## 🏗️ Architecture
+
+![ZIPPO System Architecture](docs/architecture.png)
+
 ## 🗂️ Repository Structure
 
 ```text
@@ -144,7 +160,6 @@ cd zippo-android
 Create a `.env` file in the backend folder using `.env.example` as a reference.
 
 Do not commit real API keys, database credentials, JWT secrets, or cloud credentials.
-
 
 ## 🗺️ Roadmap
 
