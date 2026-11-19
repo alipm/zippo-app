@@ -109,7 +109,7 @@ ZIPPO digitises these workflows into a simple, mobile-first application.
 
 | Billing | Route Planner | Passenger Update |
 |---|---|---|
-| ![Billing](docs/screenshots/BillingScreen.png) | ![Route Planner](docs/screenshots/route-planner.png) | ![Passenger Update](docs/screenshots/passenger-update.png) |
+| ![Billing](docs/screenshots/BillingScreen.png) | ![Route Planner](docs/screenshots/RoutePlanner.png) | ![Passenger Update](docs/screenshots/PassengerupdateScreen.png) |
 
 ## 🏗️ Architecture
 
