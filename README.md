@@ -113,7 +113,7 @@ ZIPPO digitises these workflows into a simple, mobile-first application.
 
 ## 🏗️ Architecture
 
-![ZIPPO System Architecture](docs/architecture.png)
+![ZIPPO System Architecture](docs/architecture.jpg)
 
 ## 🗂️ Repository Structure
 
