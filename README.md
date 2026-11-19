@@ -91,14 +91,15 @@ ZIPPO digitises these workflows into a simple, mobile-first application.
 
 ## 📱 Screenshots
 
-| Register | Login | App Icon
-|---|---|---|
+| Register | Login | App Icon |
 |  ![Registry](docs/screenshots/Register.png) | ![Login](docs/screenshots/Login.png) | ![Attendance](docs/screenshots/ic_launcher_foreground.png) |
-
-| Billing | Route Planner | Passenger Update | Trip Planner
-|---|---|---|
-| ![Billing](docs/screenshots/BillingScreen.png) | ![RoutePlanner](docs/screenshots/RoutePlanner.png) | ![Trips](docs/screenshots/PassengerupdateScreen.png) | ![Trips](docs/screenshots/TripStartedScreen.png)
-
+|---|
+| Billing | Route Planner | 
+| ![Billing](docs/screenshots/BillingScreen.png) | ![RoutePlanner](docs/screenshots/RoutePlanner.png) |
+|---|
+| Passenger Update | Trip Planner | 
+| ![Trips](docs/screenshots/PassengerupdateScreen.png) | ![Trips](docs/screenshots/TripStartedScreen.png) |
+   
 ## 🗂️ Repository Structure
 
 ```text
