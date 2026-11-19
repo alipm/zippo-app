@@ -8,7 +8,7 @@ It helps drivers manage daily routes, passenger attendance, vehicle capacity, tr
 
 Download the latest Android build from the GitHub Releases page:
 
-[Download ZIPPO v1.8.0 APK](https://github.com/alipm/zippo-app/releases#release-v1.8.0-radar-widget)
+[Download ZIPPO v1.8.0 APK](https://github.com/alipm/zippo-app/releases/tag/v1.8.0-radar-widget)
 
 ## 🎯 Problem It Solves
 
