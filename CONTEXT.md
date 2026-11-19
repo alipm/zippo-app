@@ -1,3 +1,7 @@
+## Development Context
+
+This document is intended as a technical reference for future development, debugging, feature enhancements, and AI-assisted implementation. It describes ZIPPO’s business rules, data model, API design principles, security considerations, and planned enhancements.
+
 # ZIPPO — Technical Context
 
 ZIPPO is a full-stack commuter fleet and route-management application for independent auto-rickshaw, commuter-van, and school-bus drivers. It helps drivers manage fixed pickup-and-drop routes, passenger attendance, trip capacity, delegation, communication, subscriptions, and monthly invoicing.
